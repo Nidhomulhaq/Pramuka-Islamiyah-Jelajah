@@ -54,29 +54,24 @@ const fallbackData = {
 
 let appState = { ...fallbackData, standings: { ...fallbackData.standings } };
 let currentRole = 'guest';
+let currentUser = null;
 let currentScanMode = 'Masuk';
+const accessTokenKey = 'jelajahAccessToken';
 
-const rolePins = {
-  pos: '1111',
-  center: '9999'
-};
+function authorizedFetch(url, options = {}) {
+  const headers = new Headers(options.headers || {});
+  const token = sessionStorage.getItem(accessTokenKey);
+  if (token) headers.set('Authorization', `Bearer ${token}`);
+  return fetch(url, { ...options, headers });
+}
 
 function updateAccessState() {
   const loginButton = document.getElementById('loginBtn');
   if (!loginButton) return;
 
-  if (currentRole === 'pos') {
-    loginButton.textContent = 'Panitia Pos';
-  } else if (currentRole === 'center') {
-    loginButton.textContent = 'Admin Pusat';
-  } else {
-    loginButton.textContent = 'Login Panitia';
-  }
-
-  const loginRole = document.getElementById('loginRole');
-  if (loginRole) {
-    loginRole.value = currentRole === 'guest' ? 'pos' : currentRole;
-  }
+  loginButton.textContent = currentUser
+    ? `Keluar (${currentUser.username})`
+    : 'Login Panitia';
 }
 
 function canAccessView(viewId) {
@@ -253,7 +248,7 @@ function renderApprovalQueue() {
       const item = appState.approvalQueue[index];
       if (!item) return;
 
-      const response = await fetch('/api/approve', {
+      const response = await authorizedFetch('/api/approve', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: item.name })
@@ -271,7 +266,7 @@ function renderApprovalQueue() {
       const item = appState.approvalQueue[index];
       if (!item) return;
 
-      const response = await fetch('/api/revise', {
+      const response = await authorizedFetch('/api/revise', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: item.name })
@@ -397,7 +392,7 @@ function bindScoreForm() {
       ]
     };
 
-    const response = await fetch('/api/score', {
+    const response = await authorizedFetch('/api/score', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
@@ -415,14 +410,26 @@ function bindLoginModal() {
   const loginBtn = document.getElementById('loginBtn');
   const form = document.getElementById('loginForm');
   const message = document.getElementById('loginMessage');
-  const roleSelect = document.getElementById('loginRole');
 
-  if (!modal || !loginBtn || !form || !message || !roleSelect) return;
+  if (!modal || !loginBtn || !form || !message) return;
 
   const openModal = () => {
     modal.classList.remove('hidden');
     modal.setAttribute('aria-hidden', 'false');
-    document.getElementById('loginPassword').focus();
+    document.getElementById('loginUsername').focus();
+  };
+
+  const logout = () => {
+    sessionStorage.removeItem(accessTokenKey);
+    currentUser = null;
+    currentRole = 'guest';
+    document.querySelectorAll('.tab-btn').forEach((tab) => {
+      tab.classList.toggle('active', tab.dataset.view === 'public-view');
+    });
+    document.querySelectorAll('.view').forEach((section) => {
+      section.classList.toggle('active', section.id === 'public-view');
+    });
+    updateAccessState();
   };
 
   const closeModal = () => {
@@ -433,24 +440,46 @@ function bindLoginModal() {
     message.classList.remove('success');
   };
 
-  loginBtn.addEventListener('click', openModal);
+  loginBtn.addEventListener('click', () => {
+    if (currentUser) {
+      logout();
+      return;
+    }
+    openModal();
+  });
   document.querySelectorAll('[data-close-modal]').forEach((element) => {
     element.addEventListener('click', closeModal);
   });
 
-  form.addEventListener('submit', (event) => {
+  form.addEventListener('submit', async (event) => {
     event.preventDefault();
-    const role = roleSelect.value;
-    const value = document.getElementById('loginPassword').value.trim();
+    message.textContent = '';
+    message.classList.remove('success');
 
-    if (value === rolePins[role]) {
-      currentRole = role;
-      message.textContent = role === 'pos'
+    try {
+      const response = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: document.getElementById('loginUsername').value.trim(),
+          password: document.getElementById('loginPassword').value
+        })
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        message.textContent = result.error || 'Login gagal. Periksa username dan password.';
+        return;
+      }
+
+      sessionStorage.setItem(accessTokenKey, result.token);
+      currentUser = result.user;
+      currentRole = result.user.role;
+      message.textContent = currentRole === 'pos'
         ? 'Login berhasil. Anda masuk ke dasbor panitia pos.'
         : 'Login berhasil. Anda masuk ke meja kurasi pusat.';
       message.classList.add('success');
       updateAccessState();
-      const nextView = role === 'pos' ? 'pos-view' : 'center-view';
+      const nextView = currentRole === 'pos' ? 'pos-view' : 'center-view';
       document.querySelectorAll('.tab-btn').forEach((tab) => {
         tab.classList.toggle('active', tab.dataset.view === nextView);
       });
@@ -458,11 +487,34 @@ function bindLoginModal() {
         section.classList.toggle('active', section.id === nextView);
       });
       setTimeout(closeModal, 700);
-    } else {
-      message.textContent = `PIN salah untuk ${role === 'pos' ? 'Panitia Pos' : 'Panitia Pusat'}. Coba ${rolePins[role]}.`;
-      message.classList.remove('success');
+    } catch (error) {
+      message.textContent = 'Tidak dapat menghubungi server. Coba lagi.';
     }
   });
+}
+
+async function restoreSession() {
+  const token = sessionStorage.getItem(accessTokenKey);
+  if (!token) return;
+
+  try {
+    const response = await authorizedFetch('/api/session');
+    if (!response.ok) throw new Error('Sesi tidak valid.');
+    const result = await response.json();
+    currentUser = result.user;
+    currentRole = result.user.role;
+    const viewId = currentRole === 'pos' ? 'pos-view' : 'center-view';
+    document.querySelectorAll('.tab-btn').forEach((tab) => {
+      tab.classList.toggle('active', tab.dataset.view === viewId);
+    });
+    document.querySelectorAll('.view').forEach((section) => {
+      section.classList.toggle('active', section.id === viewId);
+    });
+  } catch (error) {
+    sessionStorage.removeItem(accessTokenKey);
+  }
+
+  updateAccessState();
 }
 
 bindTabs();
@@ -472,4 +524,5 @@ bindScoreForm();
 bindScanActions();
 bindManualOverride();
 updateAccessState();
+restoreSession();
 loadDashboard();

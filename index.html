@@ -420,15 +420,12 @@
 
         <form id="loginForm" class="login-form">
           <label>
-            Role
-            <select id="loginRole">
-              <option value="pos">Panitia Pos</option>
-              <option value="center">Panitia Pusat</option>
-            </select>
+            Username
+            <input id="loginUsername" type="text" placeholder="Username panitia" autocomplete="username" required />
           </label>
           <label>
-            PIN / Password
-            <input id="loginPassword" type="password" placeholder="Masukkan PIN" />
+            Password
+            <input id="loginPassword" type="password" placeholder="Masukkan password" autocomplete="current-password" required />
           </label>
           <p id="loginMessage" class="login-message"></p>
           <button type="submit" class="primary-btn full">Masuk</button>

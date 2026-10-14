@@ -2,6 +2,7 @@ require('dotenv').config();
 
 const express = require('express');
 const path = require('path');
+const crypto = require('crypto');
 const { getDashboardData, saveDashboardData } = require('./lib/dataStore');
 
 const app = express();
@@ -10,8 +11,148 @@ const PORT = process.env.PORT || 8000;
 app.use(express.json());
 app.use(express.static(__dirname));
 
+function getAuthAccounts() {
+  let accounts;
+  try {
+    accounts = JSON.parse(process.env.AUTH_ACCOUNTS || '');
+  } catch (error) {
+    throw new Error('AUTH_ACCOUNTS must contain a valid JSON array.');
+  }
+
+  if (!Array.isArray(accounts) || accounts.length !== 6) {
+    throw new Error('AUTH_ACCOUNTS must contain exactly six accounts.');
+  }
+
+  const usernames = new Set();
+  for (const account of accounts) {
+    if (
+      !account ||
+      typeof account.username !== 'string' ||
+      typeof account.password !== 'string' ||
+      !['pos', 'center'].includes(account.role) ||
+      !account.username.trim() ||
+      !account.password
+    ) {
+      throw new Error('Each AUTH_ACCOUNTS entry must have a username, password, and valid role.');
+    }
+    const username = account.username.toLowerCase();
+    if (usernames.has(username)) throw new Error('AUTH_ACCOUNTS usernames must be unique.');
+    usernames.add(username);
+  }
+
+  if (accounts.filter((account) => account.role === 'center').length !== 2 ||
+      accounts.filter((account) => account.role === 'pos').length !== 4) {
+    throw new Error('AUTH_ACCOUNTS must contain two center and four pos accounts.');
+  }
+
+  return accounts;
+}
+
+function getTokenSecret() {
+  const secret = process.env.AUTH_TOKEN_SECRET;
+  if (!secret || secret.length < 32) {
+    throw new Error('AUTH_TOKEN_SECRET must contain at least 32 characters.');
+  }
+  return secret;
+}
+
+function signToken(payload) {
+  const encodedPayload = Buffer.from(JSON.stringify(payload)).toString('base64url');
+  const signature = crypto
+    .createHmac('sha256', getTokenSecret())
+    .update(encodedPayload)
+    .digest('base64url');
+  return `${encodedPayload}.${signature}`;
+}
+
+function verifyToken(token) {
+  const [encodedPayload, providedSignature, extra] = String(token || '').split('.');
+  if (!encodedPayload || !providedSignature || extra) return null;
+
+  const expectedSignature = crypto
+    .createHmac('sha256', getTokenSecret())
+    .update(encodedPayload)
+    .digest();
+  let actualSignature;
+  try {
+    actualSignature = Buffer.from(providedSignature, 'base64url');
+  } catch (error) {
+    return null;
+  }
+  if (
+    actualSignature.length !== expectedSignature.length ||
+    !crypto.timingSafeEqual(actualSignature, expectedSignature)
+  ) return null;
+
+  try {
+    const payload = JSON.parse(Buffer.from(encodedPayload, 'base64url').toString('utf8'));
+    if (typeof payload.sub !== 'string' || !['pos', 'center'].includes(payload.role) ||
+        typeof payload.exp !== 'number' || payload.exp <= Date.now()) return null;
+    return { username: payload.sub, role: payload.role };
+  } catch (error) {
+    return null;
+  }
+}
+
+function requireRole(...allowedRoles) {
+  return (req, res, next) => {
+    let user;
+    try {
+      const authorization = req.get('authorization') || '';
+      const match = authorization.match(/^Bearer (.+)$/i);
+      user = match ? verifyToken(match[1]) : null;
+    } catch (error) {
+      console.error('Authentication configuration error:', error.message);
+      return res.status(503).json({ error: 'Autentikasi belum dikonfigurasi dengan benar.' });
+    }
+
+    if (!user) return res.status(401).json({ error: 'Silakan login kembali.' });
+    if (!allowedRoles.includes(user.role)) {
+      return res.status(403).json({ error: 'Akun Anda tidak memiliki akses untuk tindakan ini.' });
+    }
+    req.user = user;
+    next();
+  };
+}
+
 app.get('/api/health', (req, res) => {
   res.json({ ok: true, message: 'Jelajah API ready' });
+});
+
+app.post('/api/login', (req, res) => {
+  try {
+    const accounts = getAuthAccounts();
+    const secret = getTokenSecret();
+    const { username, password } = req.body || {};
+    const account = accounts.find((item) =>
+      item.username.toLowerCase() === String(username || '').trim().toLowerCase()
+    );
+    const provided = Buffer.from(String(password || ''));
+    const expected = Buffer.from(account?.password || crypto.randomBytes(32));
+    const passwordMatches = provided.length === expected.length &&
+      crypto.timingSafeEqual(provided, expected);
+
+    if (!account || !passwordMatches) {
+      return res.status(401).json({ error: 'Username atau password salah.' });
+    }
+
+    const token = signToken({
+      sub: account.username,
+      role: account.role,
+      exp: Date.now() + 12 * 60 * 60 * 1000
+    });
+    res.json({
+      token,
+      user: { username: account.username, role: account.role }
+    });
+  } catch (error) {
+    console.error('Login configuration error:', error.message);
+    res.status(503).json({ error: 'Autentikasi belum dikonfigurasi. Hubungi administrator.' });
+  }
+});
+
+app.get('/api/session', requireRole('pos', 'center'), (req, res) => {
+  res.json({ user: req.user });
 });
 
 app.get('/api/dashboard', async (req, res) => {
@@ -19,7 +160,7 @@ app.get('/api/dashboard', async (req, res) => {
   res.json(data);
 });
 
-app.post('/api/score', async (req, res) => {
+app.post('/api/score', requireRole('pos'), async (req, res) => {
   const { team, pos, values } = req.body || {};
 
   if (!team || !pos || !Array.isArray(values)) {
@@ -57,7 +198,7 @@ app.post('/api/score', async (req, res) => {
   res.json({ success: true, data: { team, pos: posName, total } });
 });
 
-app.post('/api/approve', async (req, res) => {
+app.post('/api/approve', requireRole('center'), async (req, res) => {
   const { name } = req.body || {};
   const data = await getDashboardData();
 
@@ -79,7 +220,7 @@ app.post('/api/approve', async (req, res) => {
   res.json({ success: true, message: `${name} telah disetujui.` });
 });
 
-app.post('/api/revise', async (req, res) => {
+app.post('/api/revise', requireRole('center'), async (req, res) => {
   const { name } = req.body || {};
   const data = await getDashboardData();
 

@@ -28,6 +28,8 @@ Copy `.env.example` ke `.env` dan isi nilai MongoDB URL Anda.
 copy .env.example .env
 ```
 
+Autentikasi panitia memerlukan `AUTH_ACCOUNTS` (JSON berisi tepat 2 akun `center` dan 4 akun `pos`) serta `AUTH_TOKEN_SECRET` (random secret minimal 32 karakter). Setiap akun harus memiliki username dan password unik/kuat. Jangan commit `.env` atau menyimpan credential di frontend.
+
 ## Deploy ke Vercel
 
 1. Push repo ke GitHub
@@ -36,7 +38,11 @@ copy .env.example .env
    - `MONGODB_URI`
    - `MONGODB_DB`
    - `MONGODB_COLLECTION`
+   - `AUTH_ACCOUNTS`
+   - `AUTH_TOKEN_SECRET`
 4. Deploy
+
+Endpoint penilaian hanya menerima akun `pos`; endpoint persetujuan/revisi hanya menerima akun `center`.
 
 ## Catatan
 
