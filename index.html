@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Jelajah Pramuka Islamiyah</title>
+    <meta
+      name="description"
+      content="Dashboard live tracking dan klasemen regu Pramuka Islamiyah."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="topbar">
+        <div class="brand-wrap">
+          <div class="brand-mark">JP</div>
+          <div>
+            <p class="eyebrow">Sistem Event</p>
+            <h1>Jelajah Pramuka Islamiyah</h1>
+          </div>
+        </div>
+
+        <nav class="main-nav" aria-label="Navigasi utama">
+          <a href="#beranda">Beranda</a>
+          <a href="#klasemen">Klasemen</a>
+          <a href="#nilai">Rekap Nilai</a>
+          <a href="#pos-view">Dasbor</a>
+        </nav>
+
+        <button id="loginBtn" class="ghost-btn" type="button">Login Panitia</button>
+      </header>
+
+      <main>
+        <section id="beranda" class="hero panel">
+          <div class="hero-copy">
+            <span class="tag">Live tracking kegiatan</span>
+            <h2>Event Lintasan Pramuka Islamiyah</h2>
+            <p>
+              Pantau seluruh regu putra dan putri secara real-time, mulai dari
+              check-in pos hingga final finish. Nilai yang tampil sudah melalui
+              proses kurasi panitia pusat.
+            </p>
+            <div class="hero-actions">
+              <a class="primary-btn" href="#klasemen">Lihat Klasemen</a>
+              <button class="secondary-btn" type="button">Panduan Pos</button>
+            </div>
+          </div>
+
+          <div class="hero-stats" aria-label="Ringkasan acara">
+            <div class="stat-card">
+              <span class="label">Total Regu</span>
+              <strong>10</strong>
+              <small>5 putra + 5 putri</small>
+            </div>
+            <div class="stat-card accent">
+              <span class="label">Pos Aktif</span>
+              <strong>4/4</strong>
+              <small>Semua pos berjalan</small>
+            </div>
+            <div class="stat-card warn">
+              <span class="label">Menunggu Kurasi</span>
+              <strong>3</strong>
+              <small>Nilai dari pos belum disetujui</small>
+            </div>
+          </div>
+        </section>
+
+        <section class="dashboard-tabs panel" aria-label="Pilihan antarmuka">
+          <button class="tab-btn active" type="button" data-view="public-view">
+            Publik
+          </button>
+          <button class="tab-btn" type="button" data-view="pos-view">Dasbor Pos</button>
+          <button class="tab-btn" type="button" data-view="center-view">
+            Pusat Kurasi
+          </button>
+        </section>
+
+        <section id="public-view" class="view active">
+          <div class="layout-grid two-col">
+            <article class="panel panel-full">
+              <div class="section-head">
+                <div>
+                  <p class="eyebrow soft">Status perjalanan</p>
+                  <h3>Live Tracking Regu</h3>
+                </div>
+                <span class="pill live">Live</span>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Regu</th>
+                      <th>Kategori</th>
+                      <th>Pos Saat Ini</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody id="live-tracking-body"></tbody>
+                </table>
+              </div>
+            </article>
+
+            <article class="panel">
+              <div class="section-head">
+                <div>
+                  <p class="eyebrow soft">Jadwal</p>
+                  <h3>Timeline Kegiatan</h3>
+                </div>
+              </div>
+              <ul class="timeline">
+                <li>
+                  <span class="timeline-dot"></span>
+                  <div>
+                    <strong>Pos 1</strong>
+                    <p>Pemberangkatan</p>
+                  </div>
+                </li>
+                <li>
+                  <span class="timeline-dot"></span>
+                  <div>
+                    <strong>Pos 2</strong>
+                    <p>Dasa Dharma</p>
+                  </div>
+                </li>
+                <li>
+                  <span class="timeline-dot"></span>
+                  <div>
+                    <strong>Pos 3</strong>
+                    <p>PBB</p>
+                  </div>
+                </li>
+                <li>
+                  <span class="timeline-dot"></span>
+                  <div>
+                    <strong>Pos 4</strong>
+                    <p>Jurnal &amp; Finish</p>
+                  </div>
+                </li>
+              </ul>
+            </article>
+          </div>
+
+          <article class="panel">
+            <div class="section-head">
+              <div>
+                <p class="eyebrow soft">Kategori</p>
+                <h3>Daftar Regu</h3>
+              </div>
+              <div class="category-toggle" aria-label="Filter regu">
+                <button class="filter-btn active" type="button" data-category="Semua">Semua</button>
+                <button class="filter-btn" type="button" data-category="Putra">Putra</button>
+                <button class="filter-btn" type="button" data-category="Putri">Putri</button>
+              </div>
+            </div>
+            <div id="teamCards" class="team-cards"></div>
+          </article>
+
+          <div id="klasemen" class="ranking-grid">
+            <article class="panel">
+              <div class="section-head narrow">
+                <div>
+                  <p class="eyebrow soft">Klasemen</p>
+                  <h3>Putra</h3>
+                </div>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Peringkat</th>
+                      <th>Regu</th>
+                      <th>Skor</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody id="standings-putra"></tbody>
+                </table>
+              </div>
+            </article>
+
+            <article class="panel">
+              <div class="section-head narrow">
+                <div>
+                  <p class="eyebrow soft">Klasemen</p>
+                  <h3>Putri</h3>
+                </div>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Peringkat</th>
+                      <th>Regu</th>
+                      <th>Skor</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody id="standings-putri"></tbody>
+                </table>
+              </div>
+            </article>
+          </div>
+
+          <article id="nilai" class="panel panel-full">
+            <div class="section-head">
+              <div>
+                <p class="eyebrow soft">Rekap nilai</p>
+                <h3>Detail Penilaian Pos</h3>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Regu</th>
+                    <th>Pos 1</th>
+                    <th>Pos 2</th>
+                    <th>Pos 3</th>
+                    <th>Pos 4</th>
+                    <th>Total</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="detail-scores-body"></tbody>
+              </table>
+            </div>
+          </article>
+        </section>
+
+        <section id="pos-view" class="view" data-view-id="dasbor">
+          <div class="panel dashboard-layout">
+            <div class="scanner-card">
+              <div class="section-head narrow">
+                <div>
+                  <p class="eyebrow soft">Pemindai</p>
+                  <h3>QR Scanner</h3>
+                </div>
+              </div>
+
+              <div class="scanner-box" aria-label="Preview kamera scanner">
+                <div class="scanner-overlay"></div>
+                <div class="scanner-camera">
+                  <span>Scanner QR</span>
+                </div>
+              </div>
+
+              <div class="scanner-status" id="scannerStatus">
+                Mode: Masuk · Regu aktif: Regu Bebek
+              </div>
+
+              <div class="scanner-actions">
+                <button class="mode-btn primary-btn tiny active" type="button" data-scan-mode="Masuk">Mode Masuk</button>
+                <button class="mode-btn secondary-btn tiny" type="button" data-scan-mode="Keluar">Mode Keluar</button>
+              </div>
+
+              <button id="scanQrBtn" class="primary-btn full" type="button">Scan QR Simulasi</button>
+            </div>
+
+            <div class="score-form-card">
+              <div class="section-head narrow">
+                <div>
+                  <p class="eyebrow soft">Input nilai</p>
+                  <h3>Form Penilaian Pos</h3>
+                </div>
+              </div>
+
+              <form id="scoreForm" class="score-form">
+                <label>
+                  Regu
+                  <select id="scoreTeam">
+                    <option>Regu Bebek</option>
+                    <option>Regu Kupu-Kupu</option>
+                    <option>Regu Garuda</option>
+                    <option>Regu Tokek</option>
+                    <option>Regu Jerapah</option>
+                    <option>Regu Kamboja</option>
+                    <option>Regu Anggrek</option>
+                    <option>Regu Pompom</option>
+                    <option>Regu Lavender</option>
+                    <option>Regu Kenikir</option>
+                  </select>
+                </label>
+
+                <label>
+                  Pos
+                  <select id="scorePos">
+                    <option>Pos 1 - Pemberangkatan</option>
+                    <option>Pos 2 - Dasa Dharma</option>
+                    <option>Pos 3 - PBB</option>
+                    <option>Pos 4 - Jurnal &amp; Finish</option>
+                  </select>
+                </label>
+
+                <div class="scale-grid">
+                  <label>
+                    Kriteria 1
+                    <input id="criteria1" type="number" value="90" min="0" max="100" />
+                  </label>
+                  <label>
+                    Kriteria 2
+                    <input id="criteria2" type="number" value="85" min="0" max="100" />
+                  </label>
+                </div>
+
+                <div class="scale-grid">
+                  <label>
+                    Kriteria 3
+                    <input id="criteria3" type="number" value="88" min="0" max="100" />
+                  </label>
+                  <label>
+                    Kriteria 4
+                    <input id="criteria4" type="number" value="92" min="0" max="100" />
+                  </label>
+                </div>
+
+                <button class="primary-btn full" type="submit">Simpan Nilai</button>
+              </form>
+            </div>
+          </div>
+
+          <article class="panel">
+            <div class="section-head">
+              <div>
+                <p class="eyebrow soft">Riwayat</p>
+                <h3>Daftar Input Nilai</h3>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Regu</th>
+                    <th>Pos</th>
+                    <th>Nilai</th>
+                    <th>Status</th>
+                    <th>Waktu</th>
+                  </tr>
+                </thead>
+                <tbody id="pos-history-body"></tbody>
+              </table>
+            </div>
+          </article>
+        </section>
+
+        <section id="center-view" class="view">
+          <div class="layout-grid two-col center-layout">
+            <article class="panel">
+              <div class="section-head">
+                <div>
+                  <p class="eyebrow soft">Approval</p>
+                  <h3>Meja Kurasi</h3>
+                </div>
+                <span class="pill alt">Realtime</span>
+              </div>
+              <div id="approval-queue" class="approval-list"></div>
+            </article>
+
+            <article class="panel">
+              <div class="section-head">
+                <div>
+                  <p class="eyebrow soft">Kendali</p>
+                  <h3>Status Manual</h3>
+                </div>
+              </div>
+              <form id="overrideForm" class="override-form">
+                <label>
+                  Regu
+                  <select id="overrideTeam">
+                    <option>Regu Bebek</option>
+                    <option>Regu Kamboja</option>
+                    <option>Regu Garuda</option>
+                    <option>Regu Anggrek</option>
+                    <option>Regu Kupu-Kupu</option>
+                    <option>Regu Kenikir</option>
+                  </select>
+                </label>
+                <label>
+                  Lokasi Saat Ini
+                  <select id="overrideLocation">
+                    <option>Pos 1</option>
+                    <option>Pos 2</option>
+                    <option>Pos 3</option>
+                    <option>Pos 4</option>
+                    <option>Selesai</option>
+                  </select>
+                </label>
+                <label>
+                  Status
+                  <select id="overrideStatus">
+                    <option>Aktif</option>
+                    <option>Menunggu Kurasi</option>
+                    <option>Selesai</option>
+                  </select>
+                </label>
+                <button class="primary-btn full" type="submit">Perbarui Status</button>
+              </form>
+            </article>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <div id="loginModal" class="modal hidden" aria-hidden="true">
+      <div class="modal-backdrop" data-close-modal="true"></div>
+      <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="loginTitle">
+        <div class="modal-header">
+          <div>
+            <p class="eyebrow soft">Autentikasi</p>
+            <h3 id="loginTitle">Login Panitia</h3>
+          </div>
+          <button type="button" class="close-modal" aria-label="Tutup modal" data-close-modal="true">×</button>
+        </div>
+
+        <form id="loginForm" class="login-form">
+          <label>
+            Role
+            <select id="loginRole">
+              <option value="pos">Panitia Pos</option>
+              <option value="center">Panitia Pusat</option>
+            </select>
+          </label>
+          <label>
+            PIN / Password
+            <input id="loginPassword" type="password" placeholder="Masukkan PIN" />
+          </label>
+          <p id="loginMessage" class="login-message"></p>
+          <button type="submit" class="primary-btn full">Masuk</button>
+        </form>
+      </div>
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>
