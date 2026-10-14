@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 const express = require('express');
 const path = require('path');
 const { getDashboardData, saveDashboardData } = require('./lib/dataStore');
