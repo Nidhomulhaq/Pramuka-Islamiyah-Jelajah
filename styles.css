@@ -118,6 +118,11 @@ select {
   opacity: 1;
 }
 
+.main-nav a.active {
+  color: var(--brown-deep);
+  opacity: 1;
+}
+
 .ghost-btn,
 .primary-btn,
 .secondary-btn {

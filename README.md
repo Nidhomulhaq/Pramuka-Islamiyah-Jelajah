@@ -5,6 +5,7 @@ Dashboard event tracking untuk regu Pramuka dengan tampilan publik, panitia pos,
 ## Fitur
 
 - Live tracking regu
+- Dasbor publik terpisah untuk kategori, klasemen, dan rekap nilai
 - Klasemen putra dan putri
 - Dasbor panitia pos
 - Dasbor pusat kurasi
@@ -43,6 +44,7 @@ Autentikasi panitia memerlukan `AUTH_ACCOUNTS` (JSON berisi tepat 2 akun `center
 4. Deploy
 
 Endpoint penilaian hanya menerima akun `pos`; endpoint persetujuan/revisi hanya menerima akun `center`.
+Sesi login disimpan di browser lintas tab dan berlaku selama 12 jam, atau sampai panitia keluar secara manual.
 
 ## Catatan
 

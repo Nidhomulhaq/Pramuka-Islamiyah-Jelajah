@@ -60,7 +60,7 @@ const accessTokenKey = 'jelajahAccessToken';
 
 function authorizedFetch(url, options = {}) {
   const headers = new Headers(options.headers || {});
-  const token = sessionStorage.getItem(accessTokenKey);
+  const token = localStorage.getItem(accessTokenKey);
   if (token) headers.set('Authorization', `Bearer ${token}`);
   return fetch(url, { ...options, headers });
 }
@@ -75,10 +75,22 @@ function updateAccessState() {
 }
 
 function canAccessView(viewId) {
-  if (viewId === 'public-view') return true;
+  if (viewId === 'public-view' || viewId === 'public-dashboard-view') return true;
   if (viewId === 'pos-view') return currentRole === 'pos';
   if (viewId === 'center-view') return currentRole === 'center';
   return true;
+}
+
+function activateView(viewId) {
+  document.querySelectorAll('.tab-btn').forEach((tab) => {
+    tab.classList.toggle('active', tab.dataset.view === viewId);
+  });
+  document.querySelectorAll('.main-nav [data-view-link]').forEach((link) => {
+    link.classList.toggle('active', link.dataset.view === viewId);
+  });
+  document.querySelectorAll('.view').forEach((section) => {
+    section.classList.toggle('active', section.id === viewId);
+  });
 }
 
 function getStatusTone(status = '') {
@@ -280,10 +292,12 @@ function renderApprovalQueue() {
 }
 
 function bindTabs() {
-  document.querySelectorAll('.tab-btn').forEach((button) => {
-    button.addEventListener('click', () => {
+  document.querySelectorAll('.tab-btn, [data-view-link]').forEach((button) => {
+    button.addEventListener('click', (event) => {
       const viewId = button.dataset.view;
+      if (!viewId) return;
       if (!canAccessView(viewId)) {
+        event.preventDefault();
         const message = document.getElementById('loginMessage');
         if (message) {
           message.textContent = 'Akses dibatasi. Login sebagai Panitia Pos atau Admin Pusat terlebih dahulu.';
@@ -293,12 +307,10 @@ function bindTabs() {
         return;
       }
 
-      document.querySelectorAll('.tab-btn').forEach((tab) => {
-        tab.classList.toggle('active', tab.dataset.view === viewId);
-      });
-      document.querySelectorAll('.view').forEach((section) => {
-        section.classList.toggle('active', section.id === viewId);
-      });
+      if (button.tagName === 'A') event.preventDefault();
+      activateView(viewId);
+      const scrollTarget = button.dataset.scrollTarget || viewId;
+      document.getElementById(scrollTarget)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
   });
 }
@@ -420,15 +432,10 @@ function bindLoginModal() {
   };
 
   const logout = () => {
-    sessionStorage.removeItem(accessTokenKey);
+    localStorage.removeItem(accessTokenKey);
     currentUser = null;
     currentRole = 'guest';
-    document.querySelectorAll('.tab-btn').forEach((tab) => {
-      tab.classList.toggle('active', tab.dataset.view === 'public-view');
-    });
-    document.querySelectorAll('.view').forEach((section) => {
-      section.classList.toggle('active', section.id === 'public-view');
-    });
+    activateView('public-view');
     updateAccessState();
   };
 
@@ -471,7 +478,7 @@ function bindLoginModal() {
         return;
       }
 
-      sessionStorage.setItem(accessTokenKey, result.token);
+      localStorage.setItem(accessTokenKey, result.token);
       currentUser = result.user;
       currentRole = result.user.role;
       message.textContent = currentRole === 'pos'
@@ -480,12 +487,7 @@ function bindLoginModal() {
       message.classList.add('success');
       updateAccessState();
       const nextView = currentRole === 'pos' ? 'pos-view' : 'center-view';
-      document.querySelectorAll('.tab-btn').forEach((tab) => {
-        tab.classList.toggle('active', tab.dataset.view === nextView);
-      });
-      document.querySelectorAll('.view').forEach((section) => {
-        section.classList.toggle('active', section.id === nextView);
-      });
+      activateView(nextView);
       setTimeout(closeModal, 700);
     } catch (error) {
       message.textContent = 'Tidak dapat menghubungi server. Coba lagi.';
@@ -494,7 +496,7 @@ function bindLoginModal() {
 }
 
 async function restoreSession() {
-  const token = sessionStorage.getItem(accessTokenKey);
+  const token = localStorage.getItem(accessTokenKey);
   if (!token) return;
 
   try {
@@ -504,18 +506,25 @@ async function restoreSession() {
     currentUser = result.user;
     currentRole = result.user.role;
     const viewId = currentRole === 'pos' ? 'pos-view' : 'center-view';
-    document.querySelectorAll('.tab-btn').forEach((tab) => {
-      tab.classList.toggle('active', tab.dataset.view === viewId);
-    });
-    document.querySelectorAll('.view').forEach((section) => {
-      section.classList.toggle('active', section.id === viewId);
-    });
+    activateView(viewId);
   } catch (error) {
-    sessionStorage.removeItem(accessTokenKey);
+    localStorage.removeItem(accessTokenKey);
   }
 
   updateAccessState();
 }
+
+window.addEventListener('storage', (event) => {
+  if (event.key !== accessTokenKey) return;
+  if (!event.newValue) {
+    currentUser = null;
+    currentRole = 'guest';
+    activateView('public-view');
+    updateAccessState();
+    return;
+  }
+  restoreSession();
+});
 
 bindTabs();
 bindCategoryFilters();

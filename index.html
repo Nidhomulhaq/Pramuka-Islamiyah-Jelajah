@@ -28,10 +28,8 @@
         </div>
 
         <nav class="main-nav" aria-label="Navigasi utama">
-          <a href="#beranda">Beranda</a>
-          <a href="#klasemen">Klasemen</a>
-          <a href="#nilai">Rekap Nilai</a>
-          <a href="#pos-view">Dasbor</a>
+          <a href="#beranda" class="active" data-view-link data-view="public-view" data-scroll-target="beranda">Beranda</a>
+          <a href="#public-dashboard-view" data-view-link data-view="public-dashboard-view">Dasbor</a>
         </nav>
 
         <button id="loginBtn" class="ghost-btn" type="button">Login Panitia</button>
@@ -48,7 +46,7 @@
               proses kurasi panitia pusat.
             </p>
             <div class="hero-actions">
-              <a class="primary-btn" href="#klasemen">Lihat Klasemen</a>
+              <a class="primary-btn" href="#public-dashboard-view" data-view-link data-view="public-dashboard-view">Lihat Dasbor</a>
               <button class="secondary-btn" type="button">Panduan Pos</button>
             </div>
           </div>
@@ -74,7 +72,10 @@
 
         <section class="dashboard-tabs panel" aria-label="Pilihan antarmuka">
           <button class="tab-btn active" type="button" data-view="public-view">
-            Publik
+            Beranda
+          </button>
+          <button class="tab-btn" type="button" data-view="public-dashboard-view">
+            Dasbor Publik
           </button>
           <button class="tab-btn" type="button" data-view="pos-view">Dasbor Pos</button>
           <button class="tab-btn" type="button" data-view="center-view">
@@ -147,6 +148,9 @@
             </article>
           </div>
 
+        </section>
+
+        <section id="public-dashboard-view" class="view">
           <article class="panel">
             <div class="section-head">
               <div>
