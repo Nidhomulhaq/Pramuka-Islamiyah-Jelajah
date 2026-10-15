@@ -9,6 +9,8 @@
   "dependencies": {
     "dotenv": "^18.0.7",
     "express": "^4.21.2",
-    "mongodb": "^7.7.0"
+    "html5-qrcode": "^2.3.8",
+    "mongodb": "^7.7.0",
+    "qrcode": "^1.5.4"
   }
 }

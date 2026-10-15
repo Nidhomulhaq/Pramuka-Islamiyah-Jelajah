@@ -9,7 +9,8 @@ Dashboard event tracking untuk regu Pramuka dengan tampilan publik, panitia pos,
 - Klasemen putra dan putri
 - Dasbor panitia pos
 - Dasbor pusat kurasi
-- Simulasi scanner QR dan override manual
+- Pemindaian QR regu dengan kamera pada dasbor panitia pos
+- QR regu yang hanya dapat ditampilkan dan dicetak oleh pusat kurasi
 - Penyimpanan data via MongoDB Atlas dengan fallback ke file JSON lokal
 
 ## Local Development
@@ -44,6 +45,7 @@ Autentikasi panitia memerlukan `AUTH_ACCOUNTS` (JSON berisi tepat 2 akun `center
 4. Deploy
 
 Endpoint penilaian hanya menerima akun `pos`; endpoint persetujuan/revisi hanya menerima akun `center`.
+Endpoint QR regu juga hanya menerima akun `center`. Pemindaian kamera memerlukan HTTPS (tersedia di Vercel) atau localhost, serta izin kamera dari browser.
 Sesi login disimpan di browser lintas tab dan berlaku selama 12 jam, atau sampai panitia keluar secara manual.
 
 ## Catatan

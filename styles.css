@@ -554,57 +554,30 @@ tbody tr:last-child td {
 
 .scanner-box {
   position: relative;
-  min-height: 220px;
+  min-height: 280px;
   border-radius: 22px;
-  background: linear-gradient(135deg, #345348, #1c2d21 60%, #0f1714);
+  background: #17251f;
   border: 1px solid rgba(255, 255, 255, 0.17);
   overflow: hidden;
   margin-bottom: 20px;
 }
 
-.scanner-overlay {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    to bottom,
-    rgba(255, 255, 255, 0.04),
-    rgba(255, 255, 255, 0.02)
-  );
+.scanner-box video {
+  width: 100%;
+  height: 100%;
+  min-height: 280px;
+  object-fit: cover;
 }
 
-.scanner-camera {
-  position: absolute;
-  inset: 18px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-radius: 18px;
+.scanner-placeholder {
+  min-height: 280px;
   display: grid;
   place-items: center;
+  margin: 0;
+  padding: 24px;
   color: rgba(255, 255, 255, 0.78);
+  text-align: center;
   font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.scanner-camera::before,
-.scanner-camera::after {
-  content: "";
-  position: absolute;
-  width: 80px;
-  height: 80px;
-  border: 4px solid rgba(255, 255, 255, 0.5);
-  border-bottom: 0;
-  border-right: 0;
-}
-
-.scanner-camera::before {
-  top: 18px;
-  left: 18px;
-}
-
-.scanner-camera::after {
-  right: 18px;
-  bottom: 18px;
-  transform: rotate(180deg);
 }
 
 .scanner-status {
@@ -617,15 +590,54 @@ tbody tr:last-child td {
   font-weight: 700;
 }
 
-.scanner-actions {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  margin-bottom: 14px;
+.team-qr-panel {
+  margin-top: 22px;
 }
 
-.mode-btn.active {
-  box-shadow: 0 8px 18px rgba(216, 173, 79, 0.2);
+.qr-description,
+.qr-status {
+  color: var(--muted);
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+
+.qr-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.team-qr-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 16px;
+}
+
+.team-qr-card {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--card);
+  text-align: center;
+  break-inside: avoid;
+}
+
+.team-qr-card img {
+  width: min(100%, 190px);
+  aspect-ratio: 1;
+  image-rendering: pixelated;
+}
+
+.team-qr-card h4,
+.team-qr-card p {
+  margin: 0;
+}
+
+.team-qr-card p {
+  color: var(--muted);
 }
 
 .score-form,
@@ -640,6 +652,38 @@ label {
   font-size: 0.9rem;
   font-weight: 600;
   color: var(--brown-deep);
+}
+
+@media print {
+  body * {
+    visibility: hidden !important;
+  }
+
+  #teamQrPanel,
+  #teamQrPanel * {
+    visibility: visible !important;
+  }
+
+  #teamQrPanel {
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 100%;
+    border: 0;
+    box-shadow: none;
+  }
+
+  #teamQrPanel .section-head > div:first-child {
+    display: block;
+  }
+
+  #teamQrPanel .qr-actions,
+  #teamQrPanel .qr-status {
+    display: none;
+  }
+
+  .team-qr-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
 
 input,

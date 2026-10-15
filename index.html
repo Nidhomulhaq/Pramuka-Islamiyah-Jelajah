@@ -248,23 +248,15 @@
                 </div>
               </div>
 
-              <div class="scanner-box" aria-label="Preview kamera scanner">
-                <div class="scanner-overlay"></div>
-                <div class="scanner-camera">
-                  <span>Scanner QR</span>
-                </div>
+              <div id="scanner-reader" class="scanner-box" aria-label="Kamera pemindai QR">
+                <p class="scanner-placeholder">Kamera akan tampil saat pemindaian dimulai.</p>
               </div>
 
-              <div class="scanner-status" id="scannerStatus">
-                Mode: Masuk · Regu aktif: Regu Bebek
-              </div>
-
-              <div class="scanner-actions">
-                <button class="mode-btn primary-btn tiny active" type="button" data-scan-mode="Masuk">Mode Masuk</button>
-                <button class="mode-btn secondary-btn tiny" type="button" data-scan-mode="Keluar">Mode Keluar</button>
-              </div>
-
-              <button id="scanQrBtn" class="primary-btn full" type="button">Scan QR Simulasi</button>
+              <p class="scanner-status" id="scannerStatus" role="status" aria-live="polite">
+                Izinkan akses kamera saat diminta untuk memindai QR regu.
+              </p>
+              <button id="scanQrBtn" class="primary-btn full" type="button">Mulai Scan Kamera</button>
+              <button id="stopScanBtn" class="secondary-btn full" type="button" hidden>Hentikan Kamera</button>
             </div>
 
             <div class="score-form-card">
@@ -407,6 +399,22 @@
               </form>
             </article>
           </div>
+
+          <article id="teamQrPanel" class="panel team-qr-panel">
+            <div class="section-head">
+              <div>
+                <p class="eyebrow soft">Kartu identitas regu</p>
+                <h3>QR Code Regu</h3>
+                <p class="qr-description">QR ini dapat dicetak dan digunakan panitia pos untuk memilih regu saat pemindaian.</p>
+              </div>
+              <div class="qr-actions">
+                <button id="loadTeamQrBtn" class="secondary-btn" type="button">Tampilkan QR Regu</button>
+                <button id="printTeamQrBtn" class="primary-btn" type="button" disabled>Cetak QR</button>
+              </div>
+            </div>
+            <p id="teamQrStatus" class="qr-status" role="status" aria-live="polite"></p>
+            <div id="teamQrList" class="team-qr-grid"></div>
+          </article>
         </section>
       </main>
     </div>
@@ -437,6 +445,7 @@
       </div>
     </div>
 
+    <script src="/vendor/html5-qrcode.min.js"></script>
     <script src="script.js"></script>
   </body>
 </html>

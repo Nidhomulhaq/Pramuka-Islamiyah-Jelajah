@@ -3,12 +3,15 @@ require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const crypto = require('crypto');
+const QRCode = require('qrcode');
 const { getDashboardData, saveDashboardData } = require('./lib/dataStore');
+const scannerLibraryPath = require.resolve('html5-qrcode/html5-qrcode.min.js');
 
 const app = express();
 const PORT = process.env.PORT || 8000;
 
 app.use(express.json());
+app.get('/vendor/html5-qrcode.min.js', (req, res) => res.sendFile(scannerLibraryPath));
 app.use(express.static(__dirname));
 
 function getAuthAccounts() {
@@ -158,6 +161,26 @@ app.get('/api/session', requireRole('pos', 'center'), (req, res) => {
 app.get('/api/dashboard', async (req, res) => {
   const data = await getDashboardData();
   res.json(data);
+});
+
+app.get('/api/team-qrs', requireRole('center'), async (req, res) => {
+  try {
+    const data = await getDashboardData();
+    const teams = await Promise.all(data.teams.map(async (team) => ({
+      name: team.name,
+      category: team.category,
+      qrCode: await QRCode.toDataURL(team.name, {
+        errorCorrectionLevel: 'H',
+        margin: 2,
+        width: 320
+      })
+    })));
+    res.set('Cache-Control', 'private, no-store');
+    res.json({ teams });
+  } catch (error) {
+    console.error('Team QR generation error:', error);
+    res.status(500).json({ error: 'QR regu gagal dibuat. Silakan coba kembali.' });
+  }
 });
 
 app.post('/api/score', requireRole('pos'), async (req, res) => {

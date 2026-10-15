@@ -55,7 +55,8 @@ const fallbackData = {
 let appState = { ...fallbackData, standings: { ...fallbackData.standings } };
 let currentRole = 'guest';
 let currentUser = null;
-let currentScanMode = 'Masuk';
+let qrScanner = null;
+let scannerRunning = false;
 const accessTokenKey = 'jelajahAccessToken';
 
 function authorizedFetch(url, options = {}) {
@@ -79,6 +80,13 @@ function updateAccessState() {
   document.querySelectorAll('.tab-btn[data-view="center-view"]').forEach((tab) => {
     tab.hidden = currentRole !== 'center';
   });
+  if (currentRole !== 'center') {
+    document.getElementById('teamQrList')?.replaceChildren();
+    const printButton = document.getElementById('printTeamQrBtn');
+    if (printButton) printButton.disabled = true;
+    const status = document.getElementById('teamQrStatus');
+    if (status) status.textContent = '';
+  }
 }
 
 function canAccessView(viewId) {
@@ -89,6 +97,7 @@ function canAccessView(viewId) {
 }
 
 function activateView(viewId) {
+  if (viewId !== 'pos-view') stopQrScanner();
   document.querySelectorAll('.tab-btn').forEach((tab) => {
     tab.classList.toggle('active', tab.dataset.view === viewId);
   });
@@ -335,37 +344,134 @@ function bindCategoryFilters() {
 
 function bindScanActions() {
   const status = document.getElementById('scannerStatus');
-  const modeButtons = document.querySelectorAll('.mode-btn');
   const scanButton = document.getElementById('scanQrBtn');
+  const stopButton = document.getElementById('stopScanBtn');
 
-  if (!status || !modeButtons.length || !scanButton) return;
+  if (!status || !scanButton || !stopButton) return;
 
-  modeButtons.forEach((button) => {
-    button.addEventListener('click', () => {
-      currentScanMode = button.dataset.scanMode;
-      modeButtons.forEach((buttonItem) => {
-        buttonItem.classList.toggle('active', buttonItem === button);
-      });
-      status.textContent = `Mode: ${currentScanMode} · Regu aktif: Regu Bebek`;
+  scanButton.addEventListener('click', async () => {
+    if (currentRole !== 'pos') {
+      status.textContent = 'Login sebagai panitia pos untuk menggunakan kamera.';
+      return;
+    }
+    if (!window.Html5Qrcode) {
+      status.textContent = 'Pemindai QR gagal dimuat. Muat ulang halaman dan coba lagi.';
+      return;
+    }
+    if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
+      status.textContent = 'Akses kamera memerlukan koneksi HTTPS atau localhost dan browser yang mendukung kamera.';
+      return;
+    }
+
+    scanButton.disabled = true;
+    status.textContent = 'Meminta izin kamera...';
+    const scanner = new Html5Qrcode('scanner-reader', {
+      formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
+      verbose: false
     });
+    qrScanner = scanner;
+    try {
+      await scanner.start(
+        { facingMode: 'environment' },
+        { fps: 10, qrbox: { width: 230, height: 230 } },
+        async (decodedText) => {
+          const team = appState.teams.find((item) => item.name === decodedText.trim());
+          if (!team) {
+            status.textContent = 'QR tidak dikenali. Gunakan QR regu yang diterbitkan pusat kurasi.';
+            return;
+          }
+
+          document.getElementById('scoreTeam').value = team.name;
+          status.textContent = `QR berhasil dipindai: ${team.name}. Lanjutkan dengan mengisi nilai.`;
+          await stopQrScanner();
+        },
+        () => {}
+      );
+      if (qrScanner !== scanner) {
+        await scanner.stop();
+        await scanner.clear();
+        return;
+      }
+      scannerRunning = true;
+      scanButton.hidden = true;
+      stopButton.hidden = false;
+      status.textContent = 'Kamera aktif. Arahkan ke QR code regu.';
+    } catch (error) {
+      if (qrScanner === scanner) {
+        qrScanner = null;
+        scannerRunning = false;
+      }
+      scanButton.disabled = false;
+      status.textContent = error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError'
+        ? 'Izin kamera ditolak. Izinkan akses kamera dari pengaturan browser lalu coba lagi.'
+        : 'Kamera tidak dapat dibuka. Pastikan kamera tidak sedang digunakan aplikasi lain.';
+    }
   });
 
-  scanButton.addEventListener('click', () => {
-    const teamNames = appState.teams.map((team) => team.name);
-    const selectedTeam = teamNames[Math.floor(Math.random() * teamNames.length)];
-    const selected = appState.teams.find((team) => team.name === selectedTeam);
-    if (!selected) return;
+  stopButton.addEventListener('click', () => stopQrScanner());
+}
 
-    const nextLocation = selected.location === 'Menunggu' ? 'Pos 1' : selected.location;
-    selected.location = nextLocation;
-    selected.status = currentScanMode === 'Masuk'
-      ? `Sedang melakukan tugas di ${nextLocation}`
-      : `Sedang ke ${nextLocation}`;
-    selected.badge = currentScanMode === 'Masuk' ? 'status-live' : 'status-pending';
+async function stopQrScanner() {
+  const scanButton = document.getElementById('scanQrBtn');
+  const stopButton = document.getElementById('stopScanBtn');
+  if (qrScanner && scannerRunning) {
+    try {
+      await qrScanner.stop();
+      await qrScanner.clear();
+    } catch (error) {
+      console.error('Gagal menghentikan kamera pemindai:', error);
+    }
+  }
+  qrScanner = null;
+  scannerRunning = false;
+  if (scanButton) {
+    scanButton.hidden = false;
+    scanButton.disabled = false;
+  }
+  if (stopButton) stopButton.hidden = true;
+}
 
-    status.textContent = `Mode: ${currentScanMode} · Regu aktif: ${selectedTeam}`;
-    renderLiveTracking();
+function bindTeamQrCodes() {
+  const loadButton = document.getElementById('loadTeamQrBtn');
+  const printButton = document.getElementById('printTeamQrBtn');
+  const status = document.getElementById('teamQrStatus');
+  const list = document.getElementById('teamQrList');
+  if (!loadButton || !printButton || !status || !list) return;
+
+  loadButton.addEventListener('click', async () => {
+    loadButton.disabled = true;
+    status.textContent = 'Memuat QR regu...';
+    try {
+      const response = await authorizedFetch('/api/team-qrs');
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'QR regu gagal dimuat.');
+
+      list.replaceChildren();
+      result.teams.forEach((team) => {
+        const card = document.createElement('article');
+        card.className = 'team-qr-card';
+        const image = document.createElement('img');
+        image.src = team.qrCode;
+        image.alt = `QR Code ${team.name}`;
+        const title = document.createElement('h4');
+        title.textContent = team.name;
+        const category = document.createElement('p');
+        category.textContent = team.category;
+        card.append(image, title, category);
+        list.append(card);
+      });
+      printButton.disabled = result.teams.length === 0;
+      status.textContent = result.teams.length
+        ? `${result.teams.length} QR regu siap dicetak.`
+        : 'Belum ada data regu untuk dibuatkan QR.';
+    } catch (error) {
+      status.textContent = error.message;
+    } finally {
+      loadButton.disabled = false;
+    }
   });
+
+  printButton.addEventListener('click', () => window.print());
 }
 
 function bindManualOverride() {
@@ -516,6 +622,9 @@ async function restoreSession() {
     activateView(viewId);
   } catch (error) {
     localStorage.removeItem(accessTokenKey);
+    currentUser = null;
+    currentRole = 'guest';
+    activateView('public-view');
   }
 
   updateAccessState();
@@ -538,6 +647,7 @@ bindCategoryFilters();
 bindLoginModal();
 bindScoreForm();
 bindScanActions();
+bindTeamQrCodes();
 bindManualOverride();
 updateAccessState();
 restoreSession();

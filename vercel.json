@@ -20,6 +20,10 @@
   ],
   "routes": [
     {
+      "src": "/vendor/html5-qrcode.min.js",
+      "dest": "/server.js"
+    },
+    {
       "src": "/api/(.*)",
       "dest": "/server.js"
     },
