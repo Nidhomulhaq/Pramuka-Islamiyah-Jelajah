@@ -67,11 +67,18 @@ function authorizedFetch(url, options = {}) {
 
 function updateAccessState() {
   const loginButton = document.getElementById('loginBtn');
-  if (!loginButton) return;
+  if (loginButton) {
+    loginButton.textContent = currentUser
+      ? `Keluar (${currentUser.username})`
+      : 'Login Panitia';
+  }
 
-  loginButton.textContent = currentUser
-    ? `Keluar (${currentUser.username})`
-    : 'Login Panitia';
+  document.querySelectorAll('.tab-btn[data-view="pos-view"]').forEach((tab) => {
+    tab.hidden = currentRole !== 'pos';
+  });
+  document.querySelectorAll('.tab-btn[data-view="center-view"]').forEach((tab) => {
+    tab.hidden = currentRole !== 'center';
+  });
 }
 
 function canAccessView(viewId) {
