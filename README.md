@@ -46,7 +46,7 @@ Autentikasi panitia memerlukan `AUTH_ACCOUNTS` (JSON berisi tepat 2 akun `center
    - `AUTH_TOKEN_SECRET`
 4. Deploy
 
-Endpoint penilaian dan checkpoint hanya menerima akun `pos`; endpoint persetujuan/revisi, QR regu, dan reset hanya menerima akun `center`. Checkpoint setiap regu wajib berurutan: masuk lalu keluar pada Pos 1, 2, 3, dan 4. Reset menghapus nilai pos, riwayat input, antrean kurasi, dan progres checkpoint serta mengembalikan semua regu ke status menunggu check-in Pos 1. Pemindaian kamera memerlukan HTTPS (tersedia di Vercel) atau localhost, serta izin kamera dari browser.
+Endpoint penilaian dan checkpoint hanya menerima akun `pos`; endpoint persetujuan/revisi, pengelolaan nama regu dan anggota (`PATCH /api/teams/details`), QR regu, dan reset hanya menerima akun `center`. Nama dan daftar anggota regu dapat dilihat semua pengunjung dari menu Daftar Regu, tetapi hanya akun pusat yang dapat mengubahnya. Checkpoint setiap regu wajib berurutan: masuk lalu keluar pada Pos 1, 2, 3, dan 4. Reset menghapus nilai pos, riwayat input, antrean kurasi, dan progres checkpoint serta mengembalikan semua regu ke status menunggu check-in Pos 1. Pemindaian kamera memerlukan HTTPS (tersedia di Vercel) atau localhost, serta izin kamera dari browser.
 Sesi login disimpan di browser lintas tab dan berlaku selama 12 jam, atau sampai panitia keluar secara manual.
 
 Saat database MongoDB masih kosong, aplikasi mengimpor `data.json` satu kali sebagai data awal. Setelah itu, MongoDB menjadi satu-satunya sumber baca dan tulis. Jika MongoDB tidak dapat dihubungi atau `MONGODB_URI` tidak dikonfigurasi, endpoint data akan mengembalikan error dan tidak menulis ke file lokal.

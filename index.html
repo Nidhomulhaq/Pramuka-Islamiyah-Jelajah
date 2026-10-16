@@ -434,6 +434,39 @@
       </div>
     </div>
 
+    <div id="teamDetailModal" class="modal hidden" aria-hidden="true">
+      <div class="modal-backdrop" data-team-modal-close="true"></div>
+      <section class="modal-card team-detail-card" role="dialog" aria-modal="true" aria-labelledby="teamDetailTitle">
+        <div class="modal-header">
+          <div>
+            <p class="eyebrow soft">Daftar regu</p>
+            <h3 id="teamDetailTitle">Data Regu</h3>
+          </div>
+          <button type="button" class="close-modal" aria-label="Tutup detail regu" data-team-modal-close="true">×</button>
+        </div>
+
+        <form id="teamDetailsForm" class="team-details-form">
+          <label>
+            Nama regu
+            <input id="teamDetailName" type="text" maxlength="80" required />
+          </label>
+          <div class="team-members-section">
+            <h4>Nama anggota</h4>
+            <ul id="teamMemberList" class="team-member-list" aria-label="Daftar nama anggota"></ul>
+            <div class="member-add-row">
+              <label for="newMemberName">Tambahkan anggota</label>
+              <div class="member-add-controls">
+                <input id="newMemberName" type="text" maxlength="100" placeholder="Nama anggota" />
+                <button id="addTeamMemberBtn" class="secondary-btn" type="button">Tambah</button>
+              </div>
+            </div>
+          </div>
+          <p id="teamDetailStatus" class="team-detail-status" role="status" aria-live="polite"></p>
+          <button id="saveTeamDetailsBtn" class="primary-btn full" type="submit">Simpan Perubahan</button>
+        </form>
+      </section>
+    </div>
+
     <script src="/vendor/html5-qrcode.min.js"></script>
     <script src="script.js"></script>
   </body>

@@ -8,7 +8,8 @@ const {
   getDashboardData,
   recordTeamCheckpoint,
   resetScores,
-  saveDashboardData
+  saveDashboardData,
+  updateTeamDetails
 } = require('./lib/dataStore');
 const scannerLibraryPath = require.resolve('html5-qrcode/html5-qrcode.min.js');
 
@@ -205,6 +206,35 @@ app.get('/api/session', requireRole('pos', 'center'), (req, res) => {
 app.get('/api/dashboard', asyncRoute(async (req, res) => {
   const data = await getDashboardData();
   res.json(data);
+}));
+
+app.patch('/api/teams/details', requireRole('center'), asyncRoute(async (req, res) => {
+  const { currentName, name, members } = req.body || {};
+  if (
+    typeof currentName !== 'string' ||
+    !currentName.trim() ||
+    typeof name !== 'string' ||
+    !name.trim() ||
+    name.trim().length > 80 ||
+    !Array.isArray(members) ||
+    members.length > 100 ||
+    members.some((member) => typeof member !== 'string' || !member.trim() || member.trim().length > 100)
+  ) {
+    return res.status(400).json({ error: 'Nama regu atau daftar anggota tidak valid.' });
+  }
+
+  const normalizedMembers = members.map((member) => member.trim());
+  if (new Set(normalizedMembers.map((member) => member.toLocaleLowerCase())).size !== normalizedMembers.length) {
+    return res.status(400).json({ error: 'Nama anggota tidak boleh duplikat.' });
+  }
+
+  const result = await updateTeamDetails({
+    currentName: currentName.trim(),
+    name: name.trim(),
+    members: normalizedMembers
+  });
+  if (!result.success) return res.status(result.status).json({ error: result.error });
+  res.json({ success: true, team: result.team, message: 'Data regu berhasil diperbarui.' });
 }));
 
 app.get('/api/team-qrs', requireRole('center'), async (req, res) => {

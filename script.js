@@ -18,6 +18,8 @@ function showDashboardError(message) {
 let appState = emptyDashboardData();
 let currentRole = 'guest';
 let currentUser = null;
+let selectedTeamName = '';
+let editingTeamMembers = [];
 let qrScanner = null;
 let scannerRunning = false;
 let scanProcessing = false;
@@ -28,6 +30,16 @@ function authorizedFetch(url, options = {}) {
   const token = localStorage.getItem(accessTokenKey);
   if (token) headers.set('Authorization', `Bearer ${token}`);
   return fetch(url, { ...options, headers });
+}
+
+function escapeHtml(value) {
+  return String(value).replace(/[&<>"']/g, (character) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  })[character]);
 }
 
 function updateAccessState() {
@@ -58,6 +70,15 @@ function updateAccessState() {
     const status = document.getElementById('teamQrStatus');
     if (status) status.textContent = '';
   }
+  const nameInput = document.getElementById('teamDetailName');
+  const addInput = document.getElementById('newMemberName');
+  const addButton = document.getElementById('addTeamMemberBtn');
+  const saveButton = document.getElementById('saveTeamDetailsBtn');
+  if (nameInput) nameInput.readOnly = currentRole !== 'center';
+  if (addInput) addInput.disabled = currentRole !== 'center';
+  if (addButton) addButton.hidden = currentRole !== 'center';
+  if (saveButton) saveButton.hidden = currentRole !== 'center';
+  renderTeamMembers();
 }
 
 function canAccessView(viewId) {
@@ -111,6 +132,7 @@ function renderAll() {
   renderPosHistory();
   renderApprovalQueue();
   renderTeamCards();
+  updateTeamSelects();
   updateAccessState();
 }
 
@@ -131,12 +153,12 @@ function renderTeamCards() {
     return `
       <article class="team-card">
         <div class="team-card-header">
-          <span class="badge ${team.category.toLowerCase()}">${team.category}</span>
-          <span class="mini-status ${team.badge || getStatusTone(statusText)}">${statusText}</span>
+          <span class="badge ${escapeHtml(team.category.toLowerCase())}">${escapeHtml(team.category)}</span>
+          <span class="mini-status ${escapeHtml(team.badge || getStatusTone(statusText))}">${escapeHtml(statusText)}</span>
         </div>
         <div>
-          <strong>${team.name}</strong>
-          <small>${team.location || 'Pos 1'} • ${team.rangerCount || 10} anggota</small>
+          <button class="team-name-trigger" type="button" data-team-index="${appState.teams.indexOf(team)}" aria-haspopup="dialog">${escapeHtml(team.name)}</button>
+          <small>${escapeHtml(team.location || 'Pos 1')} · ${(team.members || []).length} anggota</small>
         </div>
         <div class="score-line">
           <span>Nilai total</span>
@@ -147,16 +169,185 @@ function renderTeamCards() {
   }).join('');
 }
 
+function updateTeamSelects() {
+  ['scoreTeam', 'overrideTeam'].forEach((id) => {
+    const select = document.getElementById(id);
+    if (!select) return;
+    const selectedName = select.value;
+    select.replaceChildren(...appState.teams.map((team) => {
+      const option = document.createElement('option');
+      option.value = team.name;
+      option.textContent = team.name;
+      return option;
+    }));
+    if (appState.teams.some((team) => team.name === selectedName)) select.value = selectedName;
+  });
+}
+
+function renderTeamMembers() {
+  const list = document.getElementById('teamMemberList');
+  if (!list) return;
+  list.replaceChildren();
+
+  if (!editingTeamMembers.length) {
+    const emptyItem = document.createElement('li');
+    emptyItem.className = 'member-empty';
+    emptyItem.textContent = 'Belum ada anggota yang ditambahkan.';
+    list.append(emptyItem);
+    return;
+  }
+
+  editingTeamMembers.forEach((member, index) => {
+    const item = document.createElement('li');
+    const name = document.createElement('span');
+    name.textContent = member;
+    item.append(name);
+    if (currentRole === 'center') {
+      const removeButton = document.createElement('button');
+      removeButton.type = 'button';
+      removeButton.className = 'member-remove-btn';
+      removeButton.textContent = 'Hapus';
+      removeButton.setAttribute('aria-label', `Hapus anggota ${member}`);
+      removeButton.addEventListener('click', () => {
+        editingTeamMembers.splice(index, 1);
+        renderTeamMembers();
+      });
+      item.append(removeButton);
+    }
+    list.append(item);
+  });
+}
+
+function bindTeamDetails() {
+  const modal = document.getElementById('teamDetailModal');
+  const form = document.getElementById('teamDetailsForm');
+  const nameInput = document.getElementById('teamDetailName');
+  const memberInput = document.getElementById('newMemberName');
+  const addButton = document.getElementById('addTeamMemberBtn');
+  const status = document.getElementById('teamDetailStatus');
+  const teamCards = document.getElementById('teamCards');
+  if (!modal || !form || !nameInput || !memberInput || !addButton || !status || !teamCards) return;
+
+  const closeModal = () => {
+    modal.classList.add('hidden');
+    modal.setAttribute('aria-hidden', 'true');
+    status.textContent = '';
+    form.reset();
+    selectedTeamName = '';
+    editingTeamMembers = [];
+  };
+
+  teamCards.addEventListener('click', (event) => {
+    const trigger = event.target.closest('[data-team-index]');
+    if (!trigger) return;
+    const team = appState.teams[Number(trigger.dataset.teamIndex)];
+    if (!team) return;
+
+    selectedTeamName = team.name;
+    editingTeamMembers = Array.isArray(team.members) ? [...team.members] : [];
+    nameInput.value = team.name;
+    nameInput.readOnly = currentRole !== 'center';
+    memberInput.value = '';
+    memberInput.disabled = currentRole !== 'center';
+    addButton.hidden = currentRole !== 'center';
+    document.getElementById('saveTeamDetailsBtn').hidden = currentRole !== 'center';
+    status.textContent = '';
+    document.getElementById('teamDetailTitle').textContent = 'Data Regu';
+    renderTeamMembers();
+    modal.classList.remove('hidden');
+    modal.setAttribute('aria-hidden', 'false');
+    if (currentRole === 'center') nameInput.focus();
+    else document.querySelector('[data-team-modal-close]').focus();
+  });
+
+  document.querySelectorAll('[data-team-modal-close]').forEach((element) => {
+    element.addEventListener('click', closeModal);
+  });
+
+  addButton.addEventListener('click', () => {
+    const memberName = memberInput.value.trim();
+    if (!memberName) {
+      status.textContent = 'Masukkan nama anggota terlebih dahulu.';
+      memberInput.focus();
+      return;
+    }
+    if (memberName.length > 100) {
+      status.textContent = 'Nama anggota maksimal 100 karakter.';
+      memberInput.focus();
+      return;
+    }
+    if (editingTeamMembers.some((member) => member.toLocaleLowerCase() === memberName.toLocaleLowerCase())) {
+      status.textContent = 'Nama anggota tersebut sudah ada.';
+      memberInput.focus();
+      return;
+    }
+    if (editingTeamMembers.length >= 100) {
+      status.textContent = 'Jumlah anggota maksimal 100 orang.';
+      return;
+    }
+    editingTeamMembers.push(memberName);
+    memberInput.value = '';
+    status.textContent = '';
+    renderTeamMembers();
+    memberInput.focus();
+  });
+
+  memberInput.addEventListener('keydown', (event) => {
+    if (event.key !== 'Enter') return;
+    event.preventDefault();
+    addButton.click();
+  });
+
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    if (currentRole !== 'center') return;
+
+    const saveButton = document.getElementById('saveTeamDetailsBtn');
+    saveButton.disabled = true;
+    status.textContent = 'Menyimpan data regu...';
+    try {
+      const response = await authorizedFetch('/api/teams/details', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          currentName: selectedTeamName,
+          name: nameInput.value.trim(),
+          members: editingTeamMembers
+        })
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Data regu gagal disimpan.');
+      const selectedScoreTeam = document.getElementById('scoreTeam').value;
+      const selectedOverrideTeam = document.getElementById('overrideTeam').value;
+      await loadDashboard();
+      if (selectedScoreTeam === selectedTeamName) {
+        document.getElementById('scoreTeam').value = result.team.name;
+      }
+      if (selectedOverrideTeam === selectedTeamName) {
+        document.getElementById('overrideTeam').value = result.team.name;
+      }
+      closeModal();
+      if (document.querySelector('#teamQrList img')) {
+        document.getElementById('loadTeamQrBtn').click();
+      }
+    } catch (error) {
+      status.textContent = error.message;
+    } finally {
+      saveButton.disabled = false;
+    }
+  });
+}
+
 function renderLiveTracking() {
   const body = document.getElementById('live-tracking-body');
   if (!body) return;
 
   body.innerHTML = appState.teams.map((team) => `
     <tr>
-      <td><strong>${team.name}</strong></td>
-      <td>${team.category}</td>
-      <td>${team.location}</td>
-      <td><span class="status-badge ${team.badge || getStatusTone(team.status)}">${team.status}</span></td>
+      <td><strong>${escapeHtml(team.name)}</strong></td>
+      <td>${escapeHtml(team.category)}</td>
+      <td>${escapeHtml(team.location)}</td>
+      <td><span class="status-badge ${escapeHtml(team.badge || getStatusTone(team.status))}">${escapeHtml(team.status)}</span></td>
     </tr>
   `).join('');
 }
@@ -173,7 +364,7 @@ function renderStandings() {
     .map((team, index) => `
       <tr>
         <td>#${index + 1}</td>
-        <td>${team.name}</td>
+        <td>${escapeHtml(team.name)}</td>
         <td>${team.score}</td>
         <td><span class="status-badge ${getStatusTone(team.status)}">${team.status}</span></td>
       </tr>
@@ -186,7 +377,7 @@ function renderStandings() {
     .map((team, index) => `
       <tr>
         <td>#${index + 1}</td>
-        <td>${team.name}</td>
+        <td>${escapeHtml(team.name)}</td>
         <td>${team.score}</td>
         <td><span class="status-badge ${getStatusTone(team.status)}">${team.status}</span></td>
       </tr>
@@ -200,7 +391,7 @@ function renderDetailScores() {
 
   body.innerHTML = (appState.scores || []).map((team) => `
     <tr>
-      <td>${team.name}</td>
+      <td>${escapeHtml(team.name)}</td>
       <td>${team.pos1 || '-'}</td>
       <td>${team.pos2 || '-'}</td>
       <td>${team.pos3 || '-'}</td>
@@ -217,7 +408,7 @@ function renderPosHistory() {
 
   body.innerHTML = (appState.history || []).map((entry) => `
     <tr>
-      <td>${entry.team}</td>
+      <td>${escapeHtml(entry.team)}</td>
       <td>${entry.pos}</td>
       <td>${entry.value}</td>
       <td><span class="status-badge ${getStatusTone(entry.status)}">${entry.status}</span></td>
@@ -233,7 +424,7 @@ function renderApprovalQueue() {
   queue.innerHTML = (appState.approvalQueue || []).map((item, index) => `
     <div class="approval-item">
       <div class="approval-meta">
-        <strong>${item.name}</strong>
+        <strong>${escapeHtml(item.name)}</strong>
         <span>${item.pos} · ${item.source}</span>
         <span>Total nilai: ${item.total}</span>
       </div>
@@ -632,6 +823,7 @@ function bindLoginModal() {
     localStorage.removeItem(accessTokenKey);
     currentUser = null;
     currentRole = 'guest';
+    document.querySelector('[data-team-modal-close]')?.click();
     activateView('public-view');
     updateAccessState();
   };
@@ -733,6 +925,7 @@ window.setInterval(() => {
 bindTabs();
 bindDashboardPanelTabs();
 bindCategoryFilters();
+bindTeamDetails();
 bindLoginModal();
 bindScoreForm();
 bindScanActions();
