@@ -38,11 +38,11 @@ function updateAccessState() {
       : 'Login Panitia';
   }
 
-  document.querySelectorAll('.tab-btn[data-view="pos-view"]').forEach((tab) => {
-    tab.hidden = currentRole !== 'pos';
+  document.querySelectorAll('.main-nav [data-view="pos-view"]').forEach((link) => {
+    link.hidden = currentRole !== 'pos';
   });
-  document.querySelectorAll('.tab-btn[data-view="center-view"]').forEach((tab) => {
-    tab.hidden = currentRole !== 'center';
+  document.querySelectorAll('.main-nav [data-view="center-view"]').forEach((link) => {
+    link.hidden = currentRole !== 'center';
   });
   if (currentRole !== 'center') {
     document.getElementById('teamQrList')?.replaceChildren();
@@ -62,9 +62,6 @@ function canAccessView(viewId) {
 
 function activateView(viewId) {
   if (viewId !== 'pos-view') stopQrScanner();
-  document.querySelectorAll('.tab-btn').forEach((tab) => {
-    tab.classList.toggle('active', tab.dataset.view === viewId);
-  });
   document.querySelectorAll('.main-nav [data-view-link]').forEach((link) => {
     link.classList.toggle('active', link.dataset.view === viewId);
   });

@@ -30,6 +30,8 @@
         <nav class="main-nav" aria-label="Navigasi utama">
           <a href="#beranda" class="active" data-view-link data-view="public-view" data-scroll-target="beranda">Beranda</a>
           <a href="#public-dashboard-view" data-view-link data-view="public-dashboard-view">Dasbor</a>
+          <a href="#pos-view" data-view-link data-view="pos-view" hidden>Dasbor Pos</a>
+          <a href="#center-view" data-view-link data-view="center-view" hidden>Pusat Kurasi</a>
         </nav>
 
         <button id="loginBtn" class="ghost-btn" type="button">Login Panitia</button>
@@ -69,19 +71,6 @@
               <small>Nilai dari pos belum disetujui</small>
             </div>
           </div>
-        </section>
-
-        <section class="dashboard-tabs panel" aria-label="Pilihan antarmuka">
-          <button class="tab-btn active" type="button" data-view="public-view">
-            Beranda
-          </button>
-          <button class="tab-btn" type="button" data-view="public-dashboard-view">
-            Dasbor Publik
-          </button>
-          <button class="tab-btn" type="button" data-view="pos-view" hidden>Dasbor Pos</button>
-          <button class="tab-btn" type="button" data-view="center-view" hidden>
-            Pusat Kurasi
-          </button>
         </section>
 
         <section id="public-view" class="view active">
