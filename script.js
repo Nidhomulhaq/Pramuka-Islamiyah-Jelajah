@@ -455,6 +455,33 @@ function bindTeamQrCodes() {
   printButton.addEventListener('click', () => window.print());
 }
 
+function bindResetScores() {
+  const button = document.getElementById('resetScoresBtn');
+  const status = document.getElementById('resetScoresStatus');
+  if (!button || !status) return;
+
+  button.addEventListener('click', async () => {
+    const confirmed = window.confirm(
+      'Reset seluruh nilai yang tersimpan? Nilai, riwayat input, dan antrean kurasi akan dihapus. Data regu dan status perjalanan tetap dipertahankan.'
+    );
+    if (!confirmed) return;
+
+    button.disabled = true;
+    status.textContent = 'Mereset nilai...';
+    try {
+      const response = await authorizedFetch('/api/reset-scores', { method: 'POST' });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Nilai gagal direset.');
+      await loadDashboard();
+      status.textContent = result.message;
+    } catch (error) {
+      status.textContent = error.message;
+    } finally {
+      button.disabled = false;
+    }
+  });
+}
+
 function bindManualOverride() {
   const form = document.getElementById('overrideForm');
   if (!form) return;
@@ -635,6 +662,7 @@ bindLoginModal();
 bindScoreForm();
 bindScanActions();
 bindTeamQrCodes();
+bindResetScores();
 bindManualOverride();
 updateAccessState();
 restoreSession();

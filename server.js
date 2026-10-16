@@ -4,7 +4,7 @@ const express = require('express');
 const path = require('path');
 const crypto = require('crypto');
 const QRCode = require('qrcode');
-const { getDashboardData, saveDashboardData } = require('./lib/dataStore');
+const { getDashboardData, resetScores, saveDashboardData } = require('./lib/dataStore');
 const scannerLibraryPath = require.resolve('html5-qrcode/html5-qrcode.min.js');
 
 const app = express();
@@ -267,6 +267,13 @@ app.post('/api/revise', requireRole('center'), asyncRoute(async (req, res) => {
   await saveDashboardData(data);
 
   res.json({ success: true, message: `${name} dikembalikan untuk revisi.` });
+}));
+
+app.post('/api/reset-scores', requireRole('center'), asyncRoute(async (req, res) => {
+  const data = await getDashboardData();
+  const resetData = resetScores(data);
+  await saveDashboardData(resetData);
+  res.json({ success: true, message: 'Seluruh nilai, riwayat input, dan antrean kurasi telah direset.' });
 }));
 
 app.use((error, req, res, next) => {
