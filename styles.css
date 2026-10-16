@@ -80,15 +80,13 @@ select {
   gap: 14px;
 }
 
-.brand-mark {
-  width: 48px;
-  height: 48px;
-  display: grid;
-  place-items: center;
-  border-radius: 14px;
-  background: linear-gradient(135deg, var(--gold-soft), var(--gold));
-  color: var(--brown-deep);
-  font-weight: 800;
+.brand-logo {
+  width: 52px;
+  height: 52px;
+  flex: 0 0 auto;
+  border-radius: 12px;
+  background: #fffaf2;
+  object-fit: contain;
 }
 
 .eyebrow {

@@ -14,6 +14,10 @@
       "use": "@vercel/static"
     },
     {
+      "src": "assets/logo-pasprala.png",
+      "use": "@vercel/static"
+    },
+    {
       "src": "server.js",
       "use": "@vercel/node"
     }
@@ -34,6 +38,10 @@
     {
       "src": "/script\\.js",
       "dest": "/script.js"
+    },
+    {
+      "src": "/assets/logo-pasprala\\.png",
+      "dest": "/assets/logo-pasprala.png"
     },
     {
       "src": "/(.*)",
