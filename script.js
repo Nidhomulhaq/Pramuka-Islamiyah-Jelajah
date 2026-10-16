@@ -44,6 +44,13 @@ function updateAccessState() {
   document.querySelectorAll('.main-nav [data-view="center-view"]').forEach((link) => {
     link.hidden = currentRole !== 'center';
   });
+  const assignedPosLabel = currentUser?.stationPos
+    ? `Pos ${currentUser.stationPos}`
+    : 'Pos ditentukan dari akun panitia.';
+  const scorePosition = document.getElementById('scorePosDisplay');
+  if (scorePosition) scorePosition.textContent = assignedPosLabel;
+  const checkpointPosition = document.getElementById('checkpointPosDisplay');
+  if (checkpointPosition) checkpointPosition.textContent = assignedPosLabel;
   if (currentRole !== 'center') {
     document.getElementById('teamQrList')?.replaceChildren();
     const printButton = document.getElementById('printTeamQrBtn');
@@ -325,10 +332,9 @@ function bindScanActions() {
   const status = document.getElementById('scannerStatus');
   const scanButton = document.getElementById('scanQrBtn');
   const stopButton = document.getElementById('stopScanBtn');
-  const checkpointPos = document.getElementById('checkpointPos');
   const checkpointAction = document.getElementById('checkpointAction');
 
-  if (!status || !scanButton || !stopButton || !checkpointPos || !checkpointAction) return;
+  if (!status || !scanButton || !stopButton || !checkpointAction) return;
 
   scanButton.addEventListener('click', async () => {
     if (currentRole !== 'pos') {
@@ -374,14 +380,13 @@ function bindScanActions() {
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 team: team.name,
-                pos: checkpointPos.value,
+                pos: currentUser.stationPos,
                 action: checkpointAction.value
               })
             });
             const result = await response.json();
             if (!response.ok) {
               if (result.nextCheckpoint) {
-                checkpointPos.value = String(result.nextCheckpoint.pos);
                 checkpointAction.value = result.nextCheckpoint.action;
               }
               throw new Error(result.error || 'Checkpoint gagal disimpan.');
@@ -390,7 +395,6 @@ function bindScanActions() {
             status.classList.add('success');
             status.textContent = `✓ Berhasil checkpoint: ${team.name} · ${result.message}`;
             if (result.nextCheckpoint) {
-              checkpointPos.value = String(result.nextCheckpoint.pos);
               checkpointAction.value = result.nextCheckpoint.action;
             }
             await loadDashboard();
@@ -551,7 +555,7 @@ function bindScoreForm() {
 
     const payload = {
       team: document.getElementById('scoreTeam').value,
-      pos: document.getElementById('scorePos').value,
+      pos: `Pos ${currentUser?.stationPos}`,
       values: [
         Number(document.getElementById('criteria1').value || 0),
         Number(document.getElementById('criteria2').value || 0),

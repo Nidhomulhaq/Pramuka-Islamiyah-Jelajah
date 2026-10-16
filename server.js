@@ -19,6 +19,18 @@ app.use(express.json());
 app.get('/vendor/html5-qrcode.min.js', (req, res) => res.sendFile(scannerLibraryPath));
 app.use(express.static(__dirname));
 
+function getAssignedPos(account) {
+  if (account.role !== 'pos') return null;
+  const configuredPos = account.pos ?? account.station;
+  if (Number.isInteger(configuredPos)) return configuredPos;
+  if (typeof configuredPos === 'string') {
+    const configuredMatch = configuredPos.match(/(?:pos|station)\s*[-_]?\s*([1-4])/i);
+    if (configuredMatch) return Number(configuredMatch[1]);
+  }
+  const usernameMatch = account.username.match(/(?:^|[-_ ])pos[-_ ]?([1-4])(?:$|[-_ ])/i);
+  return usernameMatch ? Number(usernameMatch[1]) : null;
+}
+
 function getAuthAccounts() {
   let accounts;
   try {
@@ -46,11 +58,23 @@ function getAuthAccounts() {
     const username = account.username.toLowerCase();
     if (usernames.has(username)) throw new Error('AUTH_ACCOUNTS usernames must be unique.');
     usernames.add(username);
+    if (account.role === 'pos') {
+      account.stationPos = getAssignedPos(account);
+      if (!account.stationPos || account.stationPos < 1 || account.stationPos > 4) {
+        throw new Error('Each pos account must have a pos (1-4) or a username such as pos-1.');
+      }
+    }
   }
 
   if (accounts.filter((account) => account.role === 'center').length !== 2 ||
       accounts.filter((account) => account.role === 'pos').length !== 4) {
     throw new Error('AUTH_ACCOUNTS must contain two center and four pos accounts.');
+  }
+  const assignedPositions = accounts
+    .filter((account) => account.role === 'pos')
+    .map((account) => account.stationPos);
+  if (new Set(assignedPositions).size !== 4) {
+    throw new Error('Each pos account must be assigned a different position from 1 to 4.');
   }
 
   return accounts;
@@ -96,7 +120,13 @@ function verifyToken(token) {
     const payload = JSON.parse(Buffer.from(encodedPayload, 'base64url').toString('utf8'));
     if (typeof payload.sub !== 'string' || !['pos', 'center'].includes(payload.role) ||
         typeof payload.exp !== 'number' || payload.exp <= Date.now()) return null;
-    return { username: payload.sub, role: payload.role };
+    if (payload.role === 'pos' &&
+        (!Number.isInteger(payload.stationPos) || payload.stationPos < 1 || payload.stationPos > 4)) return null;
+    return {
+      username: payload.sub,
+      role: payload.role,
+      ...(payload.role === 'pos' ? { stationPos: payload.stationPos } : {})
+    };
   } catch (error) {
     return null;
   }
@@ -151,11 +181,16 @@ app.post('/api/login', (req, res) => {
     const token = signToken({
       sub: account.username,
       role: account.role,
+      ...(account.role === 'pos' ? { stationPos: account.stationPos } : {}),
       exp: Date.now() + 12 * 60 * 60 * 1000
     });
     res.json({
       token,
-      user: { username: account.username, role: account.role }
+      user: {
+        username: account.username,
+        role: account.role,
+        ...(account.role === 'pos' ? { stationPos: account.stationPos } : {})
+      }
     });
   } catch (error) {
     console.error('Login configuration error:', error.message);
@@ -199,6 +234,9 @@ app.post('/api/checkpoint', requireRole('pos'), asyncRoute(async (req, res) => {
       !['Masuk', 'Keluar'].includes(action)) {
     return res.status(400).json({ error: 'Regu, pos, atau jenis checkpoint tidak valid.' });
   }
+  if (posNumber !== req.user.stationPos) {
+    return res.status(403).json({ error: `Akun Anda hanya dapat memproses checkpoint Pos ${req.user.stationPos}.` });
+  }
 
   const result = await recordTeamCheckpoint({
     teamName,
@@ -218,21 +256,27 @@ app.post('/api/checkpoint', requireRole('pos'), asyncRoute(async (req, res) => {
 app.post('/api/score', requireRole('pos'), asyncRoute(async (req, res) => {
   const { team, pos, values } = req.body || {};
 
-  if (!team || !pos || !Array.isArray(values)) {
+  const posMatch = typeof pos === 'string' && pos.match(/^Pos\s*([1-4])(?:\s*-.*)?$/i);
+  if (!team || !posMatch || !Array.isArray(values)) {
     return res.status(400).json({ error: 'Data tidak lengkap.' });
+  }
+  const posNumber = Number(posMatch[1]);
+  if (posNumber !== req.user.stationPos) {
+    return res.status(403).json({ error: `Akun Anda hanya dapat mengisi nilai Pos ${req.user.stationPos}.` });
   }
 
   const data = await getDashboardData();
   const total = values.reduce((sum, value) => sum + Number(value || 0), 0);
-  const posName = pos.split(' - ')[0];
+  const posName = `Pos ${posNumber}`;
   const posKey = `pos${posName.replace(/\D/g, '')}`;
 
   const scoreEntry = data.scores.find((item) => item.name === team);
-  if (scoreEntry) {
-    scoreEntry[posKey] = String(total);
-    scoreEntry.total = String(total);
-    scoreEntry.status = 'Menunggu Kurasi';
-  }
+  if (!scoreEntry) return res.status(404).json({ error: 'Regu tidak ditemukan.' });
+  scoreEntry[posKey] = String(total);
+  scoreEntry.total = String(
+    ['pos1', 'pos2', 'pos3', 'pos4'].reduce((sum, key) => sum + (Number(scoreEntry[key]) || 0), 0)
+  );
+  scoreEntry.status = 'Menunggu Kurasi';
 
   data.history.unshift({
     team,

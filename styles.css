@@ -678,6 +678,16 @@ tbody tr:last-child td {
   gap: 18px;
 }
 
+.assigned-position {
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel-strong);
+  color: var(--brown-deep);
+  font-weight: 800;
+}
+
 label {
   display: grid;
   gap: 8px;
