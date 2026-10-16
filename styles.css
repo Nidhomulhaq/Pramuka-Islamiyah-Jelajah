@@ -287,6 +287,37 @@ main {
   display: block;
 }
 
+.dashboard-panel-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: rgba(251, 246, 239, 0.82);
+}
+
+.dashboard-panel-tab {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 11px 16px;
+  background: transparent;
+  color: var(--brown-deep);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.dashboard-panel-tab.active {
+  border-color: var(--brown-deep);
+  background: var(--brown-deep);
+  color: #fffaf2;
+}
+
+.dashboard-panel {
+  margin-top: 18px;
+}
+
 .layout-grid {
   display: grid;
   gap: 22px;
@@ -397,38 +428,7 @@ tbody tr:last-child td {
   color: var(--red);
 }
 
-.timeline {
-  list-style: none;
-  margin: 10px 0 0;
-  padding: 0;
-  display: grid;
-  gap: 18px;
-}
 
-.timeline li {
-  display: grid;
-  grid-template-columns: 20px 1fr;
-  gap: 12px;
-  align-items: center;
-}
-
-.timeline li p,
-.timeline li strong {
-  margin: 0;
-}
-
-.timeline li p {
-  color: var(--muted);
-  margin-top: 4px;
-}
-
-.timeline-dot {
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--gold-soft), var(--gold));
-  box-shadow: 0 0 0 6px rgba(216, 173, 79, 0.18);
-}
 
 .category-toggle {
   display: flex;
@@ -955,6 +955,20 @@ select {
   .section-head {
     align-items: flex-start;
     flex-wrap: wrap;
+  }
+
+  .dashboard-panel-nav {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+    padding: 8px;
+  }
+
+  .dashboard-panel-tab {
+    min-width: 0;
+    padding: 10px 6px;
+    font-size: 0.78rem;
+    overflow-wrap: anywhere;
   }
 
   .section-head > div {

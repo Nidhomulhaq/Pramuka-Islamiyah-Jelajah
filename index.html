@@ -74,7 +74,7 @@
             </div>
           </section>
 
-          <div class="layout-grid two-col">
+          <div class="layout-grid">
             <article class="panel panel-full">
               <div class="section-head">
                 <div>
@@ -98,134 +98,114 @@
               </div>
             </article>
 
-            <article class="panel">
-              <div class="section-head">
-                <div>
-                  <p class="eyebrow soft">Jadwal</p>
-                  <h3>Timeline Kegiatan</h3>
-                </div>
-              </div>
-              <ul class="timeline">
-                <li>
-                  <span class="timeline-dot"></span>
-                  <div>
-                    <strong>Pos 1</strong>
-                    <p>Pemberangkatan</p>
-                  </div>
-                </li>
-                <li>
-                  <span class="timeline-dot"></span>
-                  <div>
-                    <strong>Pos 2</strong>
-                    <p>Dasa Dharma</p>
-                  </div>
-                </li>
-                <li>
-                  <span class="timeline-dot"></span>
-                  <div>
-                    <strong>Pos 3</strong>
-                    <p>PBB</p>
-                  </div>
-                </li>
-                <li>
-                  <span class="timeline-dot"></span>
-                  <div>
-                    <strong>Pos 4</strong>
-                    <p>Jurnal &amp; Finish</p>
-                  </div>
-                </li>
-              </ul>
-            </article>
           </div>
 
         </section>
 
         <section id="public-dashboard-view" class="view">
-          <article class="panel">
-            <div class="section-head">
-              <div>
-                <p class="eyebrow soft">Kategori</p>
-                <h3>Daftar Regu</h3>
-              </div>
-              <div class="category-toggle" aria-label="Filter regu">
-                <button class="filter-btn active" type="button" data-category="Semua">Semua</button>
-                <button class="filter-btn" type="button" data-category="Putra">Putra</button>
-                <button class="filter-btn" type="button" data-category="Putri">Putri</button>
-              </div>
-            </div>
-            <div id="teamCards" class="team-cards"></div>
-          </article>
+          <nav class="dashboard-panel-nav" role="tablist" aria-label="Panel dasbor publik">
+            <button class="dashboard-panel-tab active" id="teams-tab" type="button" role="tab" aria-selected="true" aria-controls="teams-panel" data-dashboard-panel="teams-panel">
+              Daftar Regu
+            </button>
+            <button class="dashboard-panel-tab" id="standings-tab" type="button" role="tab" aria-selected="false" aria-controls="standings-panel" data-dashboard-panel="standings-panel">
+              Klasemen
+            </button>
+            <button class="dashboard-panel-tab" id="scores-tab" type="button" role="tab" aria-selected="false" aria-controls="scores-panel" data-dashboard-panel="scores-panel">
+              Rekap Nilai
+            </button>
+          </nav>
 
-          <div id="klasemen" class="ranking-grid">
+          <section id="teams-panel" class="dashboard-panel active" role="tabpanel" aria-labelledby="teams-tab">
             <article class="panel">
-              <div class="section-head narrow">
+              <div class="section-head">
                 <div>
-                  <p class="eyebrow soft">Klasemen</p>
-                  <h3>Putra</h3>
+                  <p class="eyebrow soft">Kategori</p>
+                  <h3>Daftar Regu</h3>
+                </div>
+                <div class="category-toggle" aria-label="Filter regu">
+                  <button class="filter-btn active" type="button" data-category="Semua">Semua</button>
+                  <button class="filter-btn" type="button" data-category="Putra">Putra</button>
+                  <button class="filter-btn" type="button" data-category="Putri">Putri</button>
+                </div>
+              </div>
+              <div id="teamCards" class="team-cards"></div>
+            </article>
+          </section>
+
+          <section id="standings-panel" class="dashboard-panel" role="tabpanel" aria-labelledby="standings-tab" hidden>
+            <div id="klasemen" class="ranking-grid">
+              <article class="panel">
+                <div class="section-head narrow">
+                  <div>
+                    <p class="eyebrow soft">Klasemen</p>
+                    <h3>Putra</h3>
+                  </div>
+                </div>
+                <div class="table-wrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Peringkat</th>
+                        <th>Regu</th>
+                        <th>Skor</th>
+                        <th>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody id="standings-putra"></tbody>
+                  </table>
+                </div>
+              </article>
+
+              <article class="panel">
+                <div class="section-head narrow">
+                  <div>
+                    <p class="eyebrow soft">Klasemen</p>
+                    <h3>Putri</h3>
+                  </div>
+                </div>
+                <div class="table-wrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Peringkat</th>
+                        <th>Regu</th>
+                        <th>Skor</th>
+                        <th>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody id="standings-putri"></tbody>
+                  </table>
+                </div>
+              </article>
+            </div>
+          </section>
+
+          <section id="scores-panel" class="dashboard-panel" role="tabpanel" aria-labelledby="scores-tab" hidden>
+            <article id="nilai" class="panel panel-full">
+              <div class="section-head">
+                <div>
+                  <p class="eyebrow soft">Rekap nilai</p>
+                  <h3>Detail Penilaian Pos</h3>
                 </div>
               </div>
               <div class="table-wrap">
                 <table>
                   <thead>
                     <tr>
-                      <th>Peringkat</th>
                       <th>Regu</th>
-                      <th>Skor</th>
+                      <th>Pos 1</th>
+                      <th>Pos 2</th>
+                      <th>Pos 3</th>
+                      <th>Pos 4</th>
+                      <th>Total</th>
                       <th>Status</th>
                     </tr>
                   </thead>
-                  <tbody id="standings-putra"></tbody>
+                  <tbody id="detail-scores-body"></tbody>
                 </table>
               </div>
             </article>
-
-            <article class="panel">
-              <div class="section-head narrow">
-                <div>
-                  <p class="eyebrow soft">Klasemen</p>
-                  <h3>Putri</h3>
-                </div>
-              </div>
-              <div class="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Peringkat</th>
-                      <th>Regu</th>
-                      <th>Skor</th>
-                      <th>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody id="standings-putri"></tbody>
-                </table>
-              </div>
-            </article>
-          </div>
-
-          <article id="nilai" class="panel panel-full">
-            <div class="section-head">
-              <div>
-                <p class="eyebrow soft">Rekap nilai</p>
-                <h3>Detail Penilaian Pos</h3>
-              </div>
-            </div>
-            <div class="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Regu</th>
-                    <th>Pos 1</th>
-                    <th>Pos 2</th>
-                    <th>Pos 3</th>
-                    <th>Pos 4</th>
-                    <th>Total</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody id="detail-scores-body"></tbody>
-              </table>
-            </div>
-          </article>
+          </section>
         </section>
 
         <section id="pos-view" class="view" data-view-id="dasbor">

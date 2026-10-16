@@ -317,6 +317,37 @@ function bindTabs() {
   });
 }
 
+function bindDashboardPanelTabs() {
+  const tabs = Array.from(document.querySelectorAll('[data-dashboard-panel]'));
+  if (!tabs.length) return;
+
+  const activatePanel = (tab) => {
+    tabs.forEach((item) => {
+      const active = item === tab;
+      item.classList.toggle('active', active);
+      item.setAttribute('aria-selected', String(active));
+      item.tabIndex = active ? 0 : -1;
+      document.getElementById(item.dataset.dashboardPanel).hidden = !active;
+    });
+  };
+
+  tabs.forEach((tab, index) => {
+    tab.addEventListener('click', () => activatePanel(tab));
+    tab.addEventListener('keydown', (event) => {
+      let nextIndex;
+      if (event.key === 'ArrowRight') nextIndex = (index + 1) % tabs.length;
+      else if (event.key === 'ArrowLeft') nextIndex = (index - 1 + tabs.length) % tabs.length;
+      else if (event.key === 'Home') nextIndex = 0;
+      else if (event.key === 'End') nextIndex = tabs.length - 1;
+      else return;
+
+      event.preventDefault();
+      tabs[nextIndex].focus();
+      activatePanel(tabs[nextIndex]);
+    });
+  });
+}
+
 function bindCategoryFilters() {
   document.querySelectorAll('.filter-btn').forEach((button) => {
     button.addEventListener('click', () => {
@@ -700,6 +731,7 @@ window.setInterval(() => {
 }, 10000);
 
 bindTabs();
+bindDashboardPanelTabs();
 bindCategoryFilters();
 bindLoginModal();
 bindScoreForm();
