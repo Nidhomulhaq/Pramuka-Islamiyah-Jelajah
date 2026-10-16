@@ -51,6 +51,16 @@ select {
   padding: 24px 20px 60px;
 }
 
+.dashboard-error {
+  margin: 16px 0;
+  padding: 14px 18px;
+  border: 1px solid var(--red);
+  border-radius: 14px;
+  background: var(--red-soft);
+  color: var(--brown-deep);
+  font-weight: 700;
+}
+
 .topbar {
   display: flex;
   align-items: center;

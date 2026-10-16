@@ -11,7 +11,7 @@ Dashboard event tracking untuk regu Pramuka dengan tampilan publik, panitia pos,
 - Dasbor pusat kurasi
 - Pemindaian QR regu dengan kamera pada dasbor panitia pos
 - QR regu yang hanya dapat ditampilkan dan dicetak oleh pusat kurasi
-- Penyimpanan data via MongoDB Atlas dengan fallback ke file JSON lokal
+- Penyimpanan data persisten di MongoDB Atlas
 
 ## Local Development
 
@@ -24,7 +24,7 @@ Akses aplikasi di http://localhost:8000
 
 ## Environment Variables
 
-Copy `.env.example` ke `.env` dan isi nilai MongoDB URL Anda.
+Copy `.env.example` ke `.env` dan isi nilai MongoDB URL Anda. MongoDB wajib tersedia; aplikasi tidak menggunakan file lokal sebagai fallback.
 
 ```bash
 copy .env.example .env
@@ -48,6 +48,4 @@ Endpoint penilaian hanya menerima akun `pos`; endpoint persetujuan/revisi hanya 
 Endpoint QR regu juga hanya menerima akun `center`. Pemindaian kamera memerlukan HTTPS (tersedia di Vercel) atau localhost, serta izin kamera dari browser.
 Sesi login disimpan di browser lintas tab dan berlaku selama 12 jam, atau sampai panitia keluar secara manual.
 
-## Catatan
-
-Jika `MONGODB_URI` belum tersedia, aplikasi tetap berjalan dengan data lokal di `data.json`.
+Saat database MongoDB masih kosong, aplikasi mengimpor `data.json` satu kali sebagai data awal. Setelah itu, MongoDB menjadi satu-satunya sumber baca dan tulis. Jika MongoDB tidak dapat dihubungi atau `MONGODB_URI` tidak dikonfigurasi, endpoint data akan mengembalikan error dan tidak menulis ke file lokal.

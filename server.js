@@ -118,6 +118,10 @@ function requireRole(...allowedRoles) {
   };
 }
 
+function asyncRoute(handler) {
+  return (req, res, next) => Promise.resolve(handler(req, res, next)).catch(next);
+}
+
 app.get('/api/health', (req, res) => {
   res.json({ ok: true, message: 'Jelajah API ready' });
 });
@@ -158,10 +162,10 @@ app.get('/api/session', requireRole('pos', 'center'), (req, res) => {
   res.json({ user: req.user });
 });
 
-app.get('/api/dashboard', async (req, res) => {
+app.get('/api/dashboard', asyncRoute(async (req, res) => {
   const data = await getDashboardData();
   res.json(data);
-});
+}));
 
 app.get('/api/team-qrs', requireRole('center'), async (req, res) => {
   try {
@@ -178,12 +182,12 @@ app.get('/api/team-qrs', requireRole('center'), async (req, res) => {
     res.set('Cache-Control', 'private, no-store');
     res.json({ teams });
   } catch (error) {
-    console.error('Team QR generation error:', error);
+    console.error('Team QR generation error:', error.message);
     res.status(500).json({ error: 'QR regu gagal dibuat. Silakan coba kembali.' });
   }
 });
 
-app.post('/api/score', requireRole('pos'), async (req, res) => {
+app.post('/api/score', requireRole('pos'), asyncRoute(async (req, res) => {
   const { team, pos, values } = req.body || {};
 
   if (!team || !pos || !Array.isArray(values)) {
@@ -219,9 +223,9 @@ app.post('/api/score', requireRole('pos'), async (req, res) => {
 
   await saveDashboardData(data);
   res.json({ success: true, data: { team, pos: posName, total } });
-});
+}));
 
-app.post('/api/approve', requireRole('center'), async (req, res) => {
+app.post('/api/approve', requireRole('center'), asyncRoute(async (req, res) => {
   const { name } = req.body || {};
   const data = await getDashboardData();
 
@@ -241,9 +245,9 @@ app.post('/api/approve', requireRole('center'), async (req, res) => {
   await saveDashboardData(data);
 
   res.json({ success: true, message: `${name} telah disetujui.` });
-});
+}));
 
-app.post('/api/revise', requireRole('center'), async (req, res) => {
+app.post('/api/revise', requireRole('center'), asyncRoute(async (req, res) => {
   const { name } = req.body || {};
   const data = await getDashboardData();
 
@@ -263,6 +267,14 @@ app.post('/api/revise', requireRole('center'), async (req, res) => {
   await saveDashboardData(data);
 
   res.json({ success: true, message: `${name} dikembalikan untuk revisi.` });
+}));
+
+app.use((error, req, res, next) => {
+  console.error('API request failed:', error.message);
+  if (res.headersSent) return next(error);
+  res.status(503).json({
+    error: 'Database MongoDB tidak tersedia. Data tidak dibaca atau disimpan secara lokal.'
+  });
 });
 
 app.get('*', (req, res) => {

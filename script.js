@@ -1,58 +1,21 @@
-const fallbackData = {
-  teams: [
-    { name: 'Regu Bebek', category: 'Putra', location: 'Pos 2', status: 'Sedang melakukan tugas di Pos 2', badge: 'status-live' },
-    { name: 'Regu Kupu-Kupu', category: 'Putra', location: 'Pos 3', status: 'Sedang melakukan tugas di Pos 3', badge: 'status-live' },
-    { name: 'Regu Garuda', category: 'Putra', location: 'Pos 1', status: 'Sedang melakukan tugas di Pos 1', badge: 'status-live' },
-    { name: 'Regu Tokek', category: 'Putra', location: 'Pos 4', status: 'Selesai (Finish)', badge: 'status-finish' },
-    { name: 'Regu Jerapah', category: 'Putra', location: 'Menunggu', status: 'Menunggu check-in', badge: 'status-pending' },
-    { name: 'Regu Kamboja', category: 'Putri', location: 'Pos 4', status: 'Selesai (Finish)', badge: 'status-finish' },
-    { name: 'Regu Anggrek', category: 'Putri', location: 'Pos 2', status: 'Sedang melakukan tugas di Pos 2', badge: 'status-live' },
-    { name: 'Regu Pompom', category: 'Putri', location: 'Pos 1', status: 'Sedang melakukan tugas di Pos 1', badge: 'status-live' },
-    { name: 'Regu Lavender', category: 'Putri', location: 'Menunggu', status: 'Menunggu check-in', badge: 'status-pending' },
-    { name: 'Regu Kenikir', category: 'Putri', location: 'Pos 3', status: 'Sedang melakukan tugas di Pos 3', badge: 'status-live' }
-  ],
-  standings: {
-    Putra: [
-      { name: 'Regu Bebek', score: 930, status: 'Approved' },
-      { name: 'Regu Garuda', score: 912, status: 'Approved' },
-      { name: 'Regu Kupu-Kupu', score: 887, status: 'Menunggu Kurasi' },
-      { name: 'Regu Tokek', score: 868, status: 'Approved' },
-      { name: 'Regu Jerapah', score: 841, status: 'Approved' }
-    ],
-    Putri: [
-      { name: 'Regu Anggrek', score: 915, status: 'Approved' },
-      { name: 'Regu Kamboja', score: 904, status: 'Approved' },
-      { name: 'Regu Kenikir', score: 891, status: 'Menunggu Kurasi' },
-      { name: 'Regu Lavender', score: 876, status: 'Approved' },
-      { name: 'Regu Pompom', score: 853, status: 'Approved' }
-    ]
-  },
-  scores: [
-    { name: 'Regu Bebek', pos1: '92', pos2: '95', pos3: '90', pos4: '92', total: '369', status: 'Approved' },
-    { name: 'Regu Kupu-Kupu', pos1: '88', pos2: '90', pos3: '85', pos4: 'Menunggu Kurasi', total: '263', status: 'Menunggu Kurasi' },
-    { name: 'Regu Garuda', pos1: '94', pos2: '91', pos3: '92', pos4: '89', total: '366', status: 'Approved' },
-    { name: 'Regu Tokek', pos1: '86', pos2: '84', pos3: '88', pos4: '90', total: '348', status: 'Approved' },
-    { name: 'Regu Jerapah', pos1: '82', pos2: '83', pos3: '87', pos4: '84', total: '336', status: 'Approved' },
-    { name: 'Regu Kamboja', pos1: '90', pos2: '94', pos3: '91', pos4: '92', total: '367', status: 'Approved' },
-    { name: 'Regu Anggrek', pos1: '89', pos2: '93', pos3: '90', pos4: '89', total: '361', status: 'Approved' },
-    { name: 'Regu Pompom', pos1: '84', pos2: '87', pos3: '88', pos4: '86', total: '345', status: 'Approved' },
-    { name: 'Regu Lavender', pos1: '85', pos2: '88', pos3: '89', pos4: '83', total: '345', status: 'Approved' },
-    { name: 'Regu Kenikir', pos1: '86', pos2: '90', pos3: '87', pos4: 'Menunggu Kurasi', total: '263', status: 'Menunggu Kurasi' }
-  ],
-  history: [
-    { team: 'Regu Bebek', pos: 'Pos 2', value: '93', status: 'Approved', time: '08:40' },
-    { team: 'Regu Anggrek', pos: 'Pos 1', value: '89', status: 'Approved', time: '08:25' },
-    { team: 'Regu Kenikir', pos: 'Pos 4', value: '86', status: 'Menunggu Kurasi', time: '08:12' },
-    { team: 'Regu Kupu-Kupu', pos: 'Pos 3', value: '87', status: 'Menunggu Kurasi', time: '08:08' }
-  ],
-  approvalQueue: [
-    { name: 'Regu Kupu-Kupu', pos: 'Pos 3', total: '287', source: 'Panitia Pos 3' },
-    { name: 'Regu Kenikir', pos: 'Pos 4', total: '263', source: 'Panitia Pos 4' },
-    { name: 'Regu Garuda', pos: 'Pos 4', total: '294', source: 'Panitia Pos 4' }
-  ]
-};
+function emptyDashboardData() {
+  return {
+    teams: [],
+    standings: { Putra: [], Putri: [] },
+    scores: [],
+    history: [],
+    approvalQueue: []
+  };
+}
 
-let appState = { ...fallbackData, standings: { ...fallbackData.standings } };
+function showDashboardError(message) {
+  const errorMessage = document.getElementById('dashboardError');
+  if (!errorMessage) return;
+  errorMessage.textContent = message;
+  errorMessage.hidden = false;
+}
+
+let appState = emptyDashboardData();
 let currentRole = 'guest';
 let currentUser = null;
 let qrScanner = null;
@@ -118,13 +81,19 @@ function getStatusTone(status = '') {
 }
 
 async function loadDashboard() {
+  const errorMessage = document.getElementById('dashboardError');
   try {
     const response = await fetch('/api/dashboard');
-    if (!response.ok) throw new Error('API gagal dimuat');
+    if (!response.ok) {
+      const result = await response.json();
+      throw new Error(result.error || 'Data dashboard gagal dimuat.');
+    }
     const data = await response.json();
     appState = data;
+    if (errorMessage) errorMessage.hidden = true;
   } catch (error) {
-    appState = JSON.parse(JSON.stringify(fallbackData));
+    appState = emptyDashboardData();
+    showDashboardError(error.message);
   }
 
   renderAll();
@@ -276,14 +245,20 @@ function renderApprovalQueue() {
       const item = appState.approvalQueue[index];
       if (!item) return;
 
-      const response = await authorizedFetch('/api/approve', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: item.name })
-      });
-
-      if (response.ok) {
+      try {
+        const response = await authorizedFetch('/api/approve', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: item.name })
+        });
+        if (!response.ok) {
+          const result = await response.json();
+          showDashboardError(result.error || 'Nilai gagal disetujui.');
+          return;
+        }
         await loadDashboard();
+      } catch (error) {
+        showDashboardError(error.message);
       }
     });
   });
@@ -294,14 +269,20 @@ function renderApprovalQueue() {
       const item = appState.approvalQueue[index];
       if (!item) return;
 
-      const response = await authorizedFetch('/api/revise', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: item.name })
-      });
-
-      if (response.ok) {
+      try {
+        const response = await authorizedFetch('/api/revise', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: item.name })
+        });
+        if (!response.ok) {
+          const result = await response.json();
+          showDashboardError(result.error || 'Nilai gagal dikembalikan untuk revisi.');
+          return;
+        }
         await loadDashboard();
+      } catch (error) {
+        showDashboardError(error.message);
       }
     });
   });
@@ -517,15 +498,21 @@ function bindScoreForm() {
       ]
     };
 
-    const response = await authorizedFetch('/api/score', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-
-    if (response.ok) {
+    try {
+      const response = await authorizedFetch('/api/score', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (!response.ok) {
+        const result = await response.json();
+        showDashboardError(result.error || 'Nilai gagal disimpan.');
+        return;
+      }
       await loadDashboard();
       form.reset();
+    } catch (error) {
+      showDashboardError(error.message);
     }
   });
 }
