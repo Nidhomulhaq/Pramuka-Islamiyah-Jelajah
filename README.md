@@ -12,6 +12,7 @@ Dashboard event tracking untuk regu Pramuka dengan tampilan publik, panitia pos,
 - Pemindaian QR regu dengan kamera pada dasbor panitia pos
 - QR regu yang hanya dapat ditampilkan dan dicetak oleh pusat kurasi
 - Reset seluruh nilai dan riwayat uji coba khusus untuk pusat kurasi
+- Checkpoint perjalanan regu berurutan dari check-in/check-out Pos 1 sampai finish
 - Penyimpanan data persisten di MongoDB Atlas
 
 ## Local Development
@@ -45,8 +46,7 @@ Autentikasi panitia memerlukan `AUTH_ACCOUNTS` (JSON berisi tepat 2 akun `center
    - `AUTH_TOKEN_SECRET`
 4. Deploy
 
-Endpoint penilaian hanya menerima akun `pos`; endpoint persetujuan/revisi hanya menerima akun `center`.
-Endpoint QR regu, reset nilai, persetujuan, dan revisi hanya menerima akun `center`. Reset nilai menghapus seluruh nilai pos, riwayat input, dan antrean kurasi tanpa mengubah data regu atau status perjalanan. Pemindaian kamera memerlukan HTTPS (tersedia di Vercel) atau localhost, serta izin kamera dari browser.
+Endpoint penilaian dan checkpoint hanya menerima akun `pos`; endpoint persetujuan/revisi, QR regu, dan reset hanya menerima akun `center`. Checkpoint setiap regu wajib berurutan: masuk lalu keluar pada Pos 1, 2, 3, dan 4. Reset menghapus nilai pos, riwayat input, antrean kurasi, dan progres checkpoint serta mengembalikan semua regu ke status menunggu check-in Pos 1. Pemindaian kamera memerlukan HTTPS (tersedia di Vercel) atau localhost, serta izin kamera dari browser.
 Sesi login disimpan di browser lintas tab dan berlaku selama 12 jam, atau sampai panitia keluar secara manual.
 
 Saat database MongoDB masih kosong, aplikasi mengimpor `data.json` satu kali sebagai data awal. Setelah itu, MongoDB menjadi satu-satunya sumber baca dan tulis. Jika MongoDB tidak dapat dihubungi atau `MONGODB_URI` tidak dikonfigurasi, endpoint data akan mengembalikan error dan tidak menulis ke file lokal.

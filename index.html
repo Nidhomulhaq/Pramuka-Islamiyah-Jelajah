@@ -253,7 +253,26 @@
                 <p class="scanner-placeholder">Kamera akan tampil saat pemindaian dimulai.</p>
               </div>
 
-              <p class="scanner-status" id="scannerStatus" role="status" aria-live="polite">
+              <div class="checkpoint-controls">
+                <label>
+                  Pos checkpoint
+                  <select id="checkpointPos">
+                    <option value="1">Pos 1</option>
+                    <option value="2">Pos 2</option>
+                    <option value="3">Pos 3</option>
+                    <option value="4">Pos 4</option>
+                  </select>
+                </label>
+                <label>
+                  Tahap checkpoint
+                  <select id="checkpointAction">
+                    <option value="Masuk">Masuk</option>
+                    <option value="Keluar">Keluar</option>
+                  </select>
+                </label>
+              </div>
+
+              <p class="scanner-status" id="scannerStatus" role="status" aria-live="assertive">
                 Izinkan akses kamera saat diminta untuk memindai QR regu.
               </p>
               <button id="scanQrBtn" class="primary-btn full" type="button">Mulai Scan Kamera</button>
@@ -405,7 +424,7 @@
             <div>
               <p class="eyebrow soft">Persiapan acara</p>
               <h3>Reset Nilai</h3>
-              <p class="qr-description">Hapus nilai uji coba, riwayat input, dan antrean kurasi. Data regu dan status perjalanan tidak berubah.</p>
+              <p class="qr-description">Hapus nilai uji coba, riwayat, antrean kurasi, dan progres perjalanan checkpoint semua regu.</p>
             </div>
             <button id="resetScoresBtn" class="danger-btn" type="button">Reset Seluruh Nilai</button>
             <p id="resetScoresStatus" class="qr-status" role="status" aria-live="polite"></p>

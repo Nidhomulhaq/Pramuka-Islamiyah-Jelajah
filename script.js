@@ -20,6 +20,7 @@ let currentRole = 'guest';
 let currentUser = null;
 let qrScanner = null;
 let scannerRunning = false;
+let scanProcessing = false;
 const accessTokenKey = 'jelajahAccessToken';
 
 function authorizedFetch(url, options = {}) {
@@ -327,8 +328,10 @@ function bindScanActions() {
   const status = document.getElementById('scannerStatus');
   const scanButton = document.getElementById('scanQrBtn');
   const stopButton = document.getElementById('stopScanBtn');
+  const checkpointPos = document.getElementById('checkpointPos');
+  const checkpointAction = document.getElementById('checkpointAction');
 
-  if (!status || !scanButton || !stopButton) return;
+  if (!status || !scanButton || !stopButton || !checkpointPos || !checkpointAction) return;
 
   scanButton.addEventListener('click', async () => {
     if (currentRole !== 'pos') {
@@ -363,8 +366,43 @@ function bindScanActions() {
           }
 
           document.getElementById('scoreTeam').value = team.name;
-          status.textContent = `QR berhasil dipindai: ${team.name}. Lanjutkan dengan mengisi nilai.`;
+          if (scanProcessing) return;
+          scanProcessing = true;
           await stopQrScanner();
+          status.classList.remove('success', 'error');
+          status.textContent = 'Menyimpan checkpoint...';
+          try {
+            const response = await authorizedFetch('/api/checkpoint', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                team: team.name,
+                pos: checkpointPos.value,
+                action: checkpointAction.value
+              })
+            });
+            const result = await response.json();
+            if (!response.ok) {
+              if (result.nextCheckpoint) {
+                checkpointPos.value = String(result.nextCheckpoint.pos);
+                checkpointAction.value = result.nextCheckpoint.action;
+              }
+              throw new Error(result.error || 'Checkpoint gagal disimpan.');
+            }
+
+            status.classList.add('success');
+            status.textContent = `✓ Berhasil checkpoint: ${team.name} · ${result.message}`;
+            if (result.nextCheckpoint) {
+              checkpointPos.value = String(result.nextCheckpoint.pos);
+              checkpointAction.value = result.nextCheckpoint.action;
+            }
+            await loadDashboard();
+          } catch (error) {
+            status.classList.add('error');
+            status.textContent = `Checkpoint belum berhasil: ${error.message}`;
+          } finally {
+            scanProcessing = false;
+          }
         },
         () => {}
       );
@@ -655,6 +693,10 @@ window.addEventListener('storage', (event) => {
   }
   restoreSession();
 });
+
+window.setInterval(() => {
+  if (document.visibilityState === 'visible') loadDashboard();
+}, 10000);
 
 bindTabs();
 bindCategoryFilters();

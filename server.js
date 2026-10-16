@@ -4,7 +4,12 @@ const express = require('express');
 const path = require('path');
 const crypto = require('crypto');
 const QRCode = require('qrcode');
-const { getDashboardData, resetScores, saveDashboardData } = require('./lib/dataStore');
+const {
+  getDashboardData,
+  recordTeamCheckpoint,
+  resetScores,
+  saveDashboardData
+} = require('./lib/dataStore');
 const scannerLibraryPath = require.resolve('html5-qrcode/html5-qrcode.min.js');
 
 const app = express();
@@ -187,6 +192,29 @@ app.get('/api/team-qrs', requireRole('center'), async (req, res) => {
   }
 });
 
+app.post('/api/checkpoint', requireRole('pos'), asyncRoute(async (req, res) => {
+  const { team: teamName, pos, action } = req.body || {};
+  const posNumber = Number(pos);
+  if (!teamName || !Number.isInteger(posNumber) || posNumber < 1 || posNumber > 4 ||
+      !['Masuk', 'Keluar'].includes(action)) {
+    return res.status(400).json({ error: 'Regu, pos, atau jenis checkpoint tidak valid.' });
+  }
+
+  const result = await recordTeamCheckpoint({
+    teamName,
+    pos: posNumber,
+    action,
+    username: req.user.username
+  });
+  if (!result.success) {
+    return res.status(result.status).json({
+      error: result.error,
+      ...(result.nextCheckpoint ? { nextCheckpoint: result.nextCheckpoint } : {})
+    });
+  }
+  res.json(result);
+}));
+
 app.post('/api/score', requireRole('pos'), asyncRoute(async (req, res) => {
   const { team, pos, values } = req.body || {};
 
@@ -273,7 +301,7 @@ app.post('/api/reset-scores', requireRole('center'), asyncRoute(async (req, res)
   const data = await getDashboardData();
   const resetData = resetScores(data);
   await saveDashboardData(resetData);
-  res.json({ success: true, message: 'Seluruh nilai, riwayat input, dan antrean kurasi telah direset.' });
+  res.json({ success: true, message: 'Nilai, status perjalanan, riwayat input, dan antrean kurasi seluruh regu telah direset.' });
 }));
 
 app.use((error, req, res, next) => {

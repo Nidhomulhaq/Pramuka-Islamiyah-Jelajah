@@ -600,6 +600,22 @@ tbody tr:last-child td {
   font-weight: 700;
 }
 
+.scanner-status.success {
+  background: var(--green-soft);
+  color: var(--green);
+}
+
+.scanner-status.error {
+  background: var(--red-soft);
+  color: var(--red);
+}
+
+.checkpoint-controls {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
 .team-qr-panel {
   margin-top: 22px;
 }
@@ -898,24 +914,43 @@ select {
 
 @media (max-width: 640px) {
   .page-shell {
-    padding-inline: 14px;
+    width: 100%;
+    padding: 12px 12px 36px;
   }
 
   .topbar {
-    padding: 16px 18px;
+    gap: 12px;
+    padding: 14px 12px;
+    border-radius: 18px;
   }
 
   .brand-wrap {
     width: 100%;
     justify-content: center;
+    min-width: 0;
+  }
+
+  .brand-wrap h1 {
+    font-size: 1rem;
+    overflow-wrap: anywhere;
   }
 
   .main-nav {
     gap: 12px 18px;
+    min-width: 0;
+  }
+
+  .main-nav a {
+    font-size: 0.9rem;
+  }
+
+  #loginBtn {
+    max-width: 100%;
+    overflow-wrap: anywhere;
   }
 
   .hero-copy h2 {
-    font-size: 2.1rem;
+    font-size: clamp(1.8rem, 8vw, 2.1rem);
   }
 
   .hero-actions {
@@ -924,8 +959,72 @@ select {
   }
 
   .panel {
-    padding: 18px 16px;
+    min-width: 0;
+    padding: 16px 12px;
     border-radius: 20px;
+  }
+
+  .dashboard-tabs {
+    gap: 8px;
+    padding: 12px;
+  }
+
+  .tab-btn {
+    flex: 1 1 42%;
+    min-width: 0;
+    padding: 10px 8px;
+    font-size: 0.82rem;
+  }
+
+  .section-head {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .section-head > div {
+    min-width: 0;
+  }
+
+  .checkpoint-controls {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .team-qr-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .team-qr-card {
+    min-width: 0;
+    padding: 10px;
+    overflow-wrap: anywhere;
+  }
+
+  .approval-item {
+    align-items: flex-start;
+    flex-direction: column;
+    padding: 12px;
+  }
+
+  .approval-meta,
+  .approval-actions {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .reset-scores-panel,
+  .qr-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .table-wrap {
+    max-width: 100%;
+    border-radius: 12px;
+  }
+
+  .table-wrap table {
+    min-width: 560px;
   }
 
   .scale-grid {
