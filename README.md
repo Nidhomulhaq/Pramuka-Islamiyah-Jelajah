@@ -5,13 +5,17 @@ Dashboard event tracking untuk regu Pramuka dengan tampilan publik, panitia pos,
 ## Fitur
 
 - Live tracking regu
-- Dasbor publik terpisah untuk daftar regu, klasemen, rekap nilai, dan riwayat checkpoint
+- Dasbor publik terpisah untuk daftar regu, klasemen, rekap nilai, dan riwayat checkpoint per pos
 - Klasemen putra dan putri
+- Skor klasemen dihitung dari nilai pos yang telah disetujui dan diperbarui setelah persetujuan kurasi
 - Podium animasi untuk lima peringkat teratas di setiap kategori
 - Dasbor panitia pos
 - Kriteria penilaian berbeda sesuai pos yang ditugaskan
 - Nilai setiap kriteria dibatasi 1-100 dan tiap regu hanya dapat dinilai sekali oleh setiap pos
 - Riwayat penilaian pada akun pos hanya menampilkan catatan dari pos penugasannya melalui endpoint khusus
+- Nilai yang masih menunggu kurasi dapat diedit per kriteria oleh pos penginput atau direvisi oleh pusat sebelum disetujui
+- Meja kurasi menampilkan antrean nilai yang dikelompokkan berdasarkan pos
+- Persetujuan kurasi dilakukan per regu dan pos
 - Dasbor pusat kurasi
 - Pemindaian QR regu dengan kamera pada dasbor panitia pos
 - QR regu yang hanya dapat ditampilkan dan dicetak oleh pusat kurasi

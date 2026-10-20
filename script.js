@@ -20,6 +20,7 @@ let currentRole = 'guest';
 let currentUser = null;
 let selectedTeamName = '';
 let editingTeamMembers = [];
+let editingScoreHistory = null;
 let dashboardLoadPromise = null;
 let qrScanner = null;
 let scannerRunning = false;
@@ -218,8 +219,6 @@ function renderTeamCards() {
     : appState.teams.filter((team) => team.category === activeFilter);
 
   container.innerHTML = visibleTeams.map((team) => {
-    const scoreEntry = (appState.scores || []).find((item) => item.name === team.name);
-    const totalScore = Number(scoreEntry?.total || team.totalScore || 0);
     const statusText = team.status || 'Dalam perjalanan';
 
     return `
@@ -231,10 +230,6 @@ function renderTeamCards() {
         <div>
           <button class="team-name-trigger" type="button" data-team-index="${appState.teams.indexOf(team)}" aria-haspopup="dialog">${escapeHtml(team.name)}</button>
           <small>${escapeHtml(team.location || 'Pos 1')} · ${(team.members || []).length} anggota</small>
-        </div>
-        <div class="score-line">
-          <span>Nilai total</span>
-          <strong>${totalScore}</strong>
         </div>
       </article>
     `;
@@ -509,15 +504,119 @@ function renderPosHistory() {
   const body = document.getElementById('pos-history-body');
   if (!body) return;
 
-  body.innerHTML = (appState.history || []).map((entry) => `
-    <tr>
-      <td>${escapeHtml(entry.team)}</td>
-      <td>${entry.pos}</td>
-      <td>${entry.value}</td>
-      <td><span class="status-badge ${getStatusTone(entry.status)}">${entry.status}</span></td>
-      <td>${entry.time}</td>
-    </tr>
-  `).join('');
+  body.innerHTML = (appState.history || []).map((entry, index) => {
+    const posNumber = Number(String(entry.pos).match(/[1-4]/)?.[0]);
+    const score = appState.scores.find((item) => item.name === entry.team);
+    const criteria = score?.criteriaByPos?.[`pos${posNumber}`] || entry.criteria;
+    const editable = currentRole === 'pos' &&
+      entry.status === 'Menunggu Kurasi' &&
+      Array.isArray(criteria) &&
+      criteria.length === scoringCriteriaByStation[posNumber]?.length;
+
+    return `
+      <tr>
+        <td>${escapeHtml(entry.team)}</td>
+        <td>${escapeHtml(entry.pos)}</td>
+        <td>${escapeHtml(entry.value)}</td>
+        <td><span class="status-badge ${getStatusTone(entry.status)}">${escapeHtml(entry.status)}</span></td>
+        <td>${escapeHtml(entry.time)}</td>
+        <td>${editable
+          ? `<button class="secondary-btn history-edit-btn" type="button" data-history-edit-index="${index}">Edit Kriteria</button>`
+          : entry.status === 'Menunggu Kurasi'
+            ? '<span class="legacy-score-note">Rincian kriteria tidak tersedia</span>'
+            : '-'}</td>
+      </tr>
+    `;
+  }).join('');
+
+  body.querySelectorAll('[data-history-edit-index]').forEach((button) => {
+    button.addEventListener('click', () => {
+      const entry = appState.history[Number(button.dataset.historyEditIndex)];
+      if (!entry) return;
+      const posNumber = Number(String(entry.pos).match(/[1-4]/)?.[0]);
+      const score = appState.scores.find((item) => item.name === entry.team);
+      const criteria = score?.criteriaByPos?.[`pos${posNumber}`] || entry.criteria;
+      openScoreEditModal({ ...entry, posNumber, criteria });
+    });
+  });
+}
+
+function openScoreEditModal(entry) {
+  const modal = document.getElementById('scoreEditModal');
+  const title = document.getElementById('scoreEditTitle');
+  const fields = document.getElementById('scoreEditCriteriaFields');
+  const status = document.getElementById('scoreEditStatus');
+  if (!modal || !title || !fields || !status) return;
+
+  editingScoreHistory = entry;
+  title.textContent = `${entry.team} · Pos ${entry.posNumber}`;
+  status.textContent = '';
+  fields.innerHTML = scoringCriteriaByStation[entry.posNumber]
+    .map((label, index) => `
+      <label>
+        ${escapeHtml(label)}
+        <input type="number" min="1" max="100" step="1" data-edit-criterion="${index}" value="${escapeHtml(entry.criteria[index])}" required />
+      </label>
+    `).join('');
+  modal.classList.remove('hidden');
+  modal.setAttribute('aria-hidden', 'false');
+  fields.querySelector('input')?.focus();
+}
+
+function bindScoreEditModal() {
+  const modal = document.getElementById('scoreEditModal');
+  const form = document.getElementById('scoreEditForm');
+  const status = document.getElementById('scoreEditStatus');
+  const saveButton = document.getElementById('saveScoreEditBtn');
+  if (!modal || !form || !status || !saveButton) return;
+
+  const closeModal = () => {
+    modal.classList.add('hidden');
+    modal.setAttribute('aria-hidden', 'true');
+    form.reset();
+    status.textContent = '';
+    editingScoreHistory = null;
+  };
+  document.querySelectorAll('[data-score-modal-close]').forEach((button) => {
+    button.addEventListener('click', closeModal);
+  });
+
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    if (!editingScoreHistory) return;
+
+    const values = Array.from(fieldsForEdit(), (input) => Number(input.value));
+    if (values.some((value) => !Number.isInteger(value) || value < 1 || value > 100)) {
+      status.textContent = 'Setiap nilai kriteria harus berupa bilangan bulat 1 sampai 100.';
+      return;
+    }
+
+    saveButton.disabled = true;
+    status.textContent = 'Menyimpan perubahan nilai...';
+    try {
+      const response = await authorizedFetch('/api/score', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          team: editingScoreHistory.team,
+          pos: editingScoreHistory.posNumber,
+          values
+        })
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Nilai gagal diperbarui.');
+      await loadDashboard();
+      closeModal();
+    } catch (error) {
+      status.textContent = error.message;
+    } finally {
+      saveButton.disabled = false;
+    }
+  });
+
+  function fieldsForEdit() {
+    return form.querySelectorAll('[data-edit-criterion]');
+  }
 }
 
 function updateScoreFormAvailability() {
@@ -534,30 +633,19 @@ function updateScoreFormAvailability() {
 }
 
 function renderCheckpointHistory() {
-  const body = document.getElementById('checkpoint-history-body');
-  if (!body) return;
+  const container = document.getElementById('checkpoint-history-groups');
+  if (!container) return;
 
   const checkpoints = appState.teams.flatMap((team) =>
     (Array.isArray(team.journeyCheckpoints) ? team.journeyCheckpoints : [])
       .map((checkpoint) => ({ ...checkpoint, teamName: team.name, category: team.category }))
-  ).sort((a, b) => {
-    const timeA = Date.parse(a.time);
-    const timeB = Date.parse(b.time);
-    if (!Number.isFinite(timeA)) return Number.isFinite(timeB) ? 1 : 0;
-    if (!Number.isFinite(timeB)) return -1;
-    return timeB - timeA;
-  });
+  );
 
-  if (!checkpoints.length) {
-    body.innerHTML = '<tr><td colspan="5">Belum ada catatan checkpoint.</td></tr>';
-    return;
-  }
-
-  body.innerHTML = checkpoints.map((checkpoint) => {
-    const time = Date.parse(checkpoint.time);
-    const formattedTime = Number.isNaN(time)
+  const formatTime = (value) => {
+    const time = Date.parse(value);
+    return Number.isNaN(time)
       ? 'Waktu tidak tersedia'
-      : new Date(time).toLocaleString('id-ID', {
+      : `${new Date(time).toLocaleString('id-ID', {
           timeZone: 'Asia/Jakarta',
           day: '2-digit',
           month: 'short',
@@ -566,20 +654,55 @@ function renderCheckpointHistory() {
           minute: '2-digit',
           second: '2-digit',
           hourCycle: 'h23'
-        });
-    const posNumber = Number(checkpoint.pos);
-    const checkpointLabel = checkpoint.action === 'Keluar' && posNumber === 4
-      ? 'Keluar · Finish'
-      : checkpoint.action;
+        })} WIB`;
+  };
+
+  container.innerHTML = [1, 2, 3, 4].map((pos) => {
+    const posCheckpoints = checkpoints
+      .filter((checkpoint) => Number(checkpoint.pos) === pos)
+      .sort((a, b) => {
+        const timeA = Date.parse(a.time);
+        const timeB = Date.parse(b.time);
+        if (!Number.isFinite(timeA)) return Number.isFinite(timeB) ? 1 : 0;
+        if (!Number.isFinite(timeB)) return -1;
+        return timeB - timeA;
+      });
+    const rows = posCheckpoints.length
+      ? posCheckpoints.map((checkpoint) => {
+          const checkpointLabel = checkpoint.action === 'Keluar' && pos === 4
+            ? 'Keluar · Finish'
+            : checkpoint.action;
+          return `
+            <tr>
+              <td><strong>${escapeHtml(checkpoint.teamName)}</strong></td>
+              <td>${escapeHtml(checkpoint.category)}</td>
+              <td>${escapeHtml(checkpointLabel)}</td>
+              <td>${escapeHtml(formatTime(checkpoint.time))}</td>
+            </tr>
+          `;
+        }).join('')
+      : '<tr><td colspan="4">Belum ada catatan checkpoint.</td></tr>';
 
     return `
-      <tr>
-        <td><strong>${escapeHtml(checkpoint.teamName)}</strong></td>
-        <td>${escapeHtml(checkpoint.category)}</td>
-        <td>Pos ${escapeHtml(checkpoint.pos)}</td>
-        <td>${escapeHtml(checkpointLabel)}</td>
-        <td>${escapeHtml(formattedTime)} WIB</td>
-      </tr>
+      <section class="checkpoint-history-group" aria-labelledby="checkpoint-pos-${pos}">
+        <div class="checkpoint-history-heading">
+          <h4 id="checkpoint-pos-${pos}">Pos ${pos}${pos === 4 ? ' · Finish' : ''}</h4>
+          <span>${posCheckpoints.length} catatan</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Regu</th>
+                <th>Kategori</th>
+                <th>Checkpoint</th>
+                <th>Waktu (WIB)</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+      </section>
     `;
   }).join('');
 }
@@ -588,59 +711,117 @@ function renderApprovalQueue() {
   const queue = document.getElementById('approval-queue');
   if (!queue) return;
 
-  queue.innerHTML = (appState.approvalQueue || []).map((item, index) => `
-    <div class="approval-item">
-      <div class="approval-meta">
-        <strong>${escapeHtml(item.name)}</strong>
-        <span>${item.pos} · ${item.source}</span>
-        <span>Total nilai: ${item.total}</span>
-      </div>
-      <div class="approval-actions">
-        <button class="approve-btn" type="button" data-approve-index="${index}">Setujui</button>
-        <button class="reject-btn" type="button" data-reject-index="${index}">Revisi</button>
-      </div>
-    </div>
-  `).join('');
+  const items = appState.approvalQueue || [];
+  if (!items.length) {
+    queue.innerHTML = '<p class="empty-approval-queue">Belum ada nilai yang menunggu kurasi.</p>';
+    return;
+  }
 
-  document.querySelectorAll('.approve-btn').forEach((button) => {
+  const itemDetails = items.map((item, index) => {
+    const posNumber = Number(String(item.pos).match(/[1-4]/)?.[0]);
+    const score = appState.scores.find((entry) => entry.name === item.name);
+    const criteria = item.criteria || score?.criteriaByPos?.[`pos${posNumber}`];
+    const labels = scoringCriteriaByStation[posNumber] || [];
+    return { item, index, posNumber, criteria, labels };
+  });
+  queue.innerHTML = [1, 2, 3, 4].map((pos) => {
+    const posItems = itemDetails.filter((entry) => entry.posNumber === pos);
+    if (!posItems.length) return '';
+
+    return `
+      <section class="approval-pos-group" aria-labelledby="approval-pos-${pos}">
+        <div class="checkpoint-history-heading">
+          <h4 id="approval-pos-${pos}">Pos ${pos}${pos === 4 ? ' · Finish' : ''}</h4>
+          <span>${posItems.length} nilai menunggu</span>
+        </div>
+        <div class="approval-pos-list">
+          ${posItems.map(({ item, index, criteria, labels }) => {
+            const hasCriteria = Array.isArray(criteria) && criteria.length === labels.length;
+            return `
+              <article class="approval-item">
+                <div class="approval-meta">
+                  <strong>${escapeHtml(item.name)}</strong>
+                  <span>${escapeHtml(item.pos)} · ${escapeHtml(item.source || 'Panitia Pos')}</span>
+                  <span>Total nilai: <strong data-approval-total="${index}">${escapeHtml(item.total)}</strong></span>
+                </div>
+                ${hasCriteria
+                  ? `<form class="curation-score-form" data-curation-index="${index}">
+                      <div class="curation-criteria-grid">
+                        ${labels.map((label, criterionIndex) => `
+                          <label>
+                            ${escapeHtml(label)}
+                            <input type="number" min="1" max="100" step="1" value="${escapeHtml(criteria[criterionIndex])}" data-curation-criterion="${criterionIndex}" required />
+                          </label>
+                        `).join('')}
+                      </div>
+                      <div class="approval-actions">
+                        <button class="secondary-btn curation-save-btn" type="submit">Simpan Revisi Nilai</button>
+                        <button class="approve-btn" type="button" data-approve-index="${index}">Setujui</button>
+                      </div>
+                    </form>`
+                  : `<p class="legacy-score-note">Nilai ini berasal dari data lama tanpa rincian kriteria, sehingga belum dapat direvisi per kriteria.</p>
+                    <div class="approval-actions">
+                      <button class="approve-btn" type="button" data-approve-index="${index}">Setujui</button>
+                    </div>`}
+              </article>
+            `;
+          }).join('')}
+        </div>
+      </section>
+    `;
+  }).join('');
+
+  queue.querySelectorAll('.curation-score-form').forEach((form) => {
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const index = Number(form.dataset.curationIndex);
+      const item = items[index];
+      if (!item) return;
+
+      const values = Array.from(form.querySelectorAll('[data-curation-criterion]'), (input) => Number(input.value));
+      if (values.some((value) => !Number.isInteger(value) || value < 1 || value > 100)) {
+        showDashboardError('Setiap nilai kriteria harus berupa bilangan bulat 1 sampai 100.');
+        return;
+      }
+
+      const saveButton = form.querySelector('.curation-save-btn');
+      saveButton.disabled = true;
+      try {
+        const response = await authorizedFetch('/api/curation-score', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            team: item.name,
+            pos: Number(String(item.pos).match(/[1-4]/)?.[0]),
+            values
+          })
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || 'Revisi nilai gagal disimpan.');
+        await loadDashboard();
+      } catch (error) {
+        showDashboardError(error.message);
+      } finally {
+        saveButton.disabled = false;
+      }
+    });
+  });
+
+  queue.querySelectorAll('.approve-btn').forEach((button) => {
     button.addEventListener('click', async () => {
       const index = Number(button.dataset.approveIndex);
-      const item = appState.approvalQueue[index];
+      const item = items[index];
       if (!item) return;
 
       try {
         const response = await authorizedFetch('/api/approve', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: item.name })
+          body: JSON.stringify({ name: item.name, pos: item.pos })
         });
         if (!response.ok) {
           const result = await response.json();
           showDashboardError(result.error || 'Nilai gagal disetujui.');
-          return;
-        }
-        await loadDashboard();
-      } catch (error) {
-        showDashboardError(error.message);
-      }
-    });
-  });
-
-  document.querySelectorAll('.reject-btn').forEach((button) => {
-    button.addEventListener('click', async () => {
-      const index = Number(button.dataset.rejectIndex);
-      const item = appState.approvalQueue[index];
-      if (!item) return;
-
-      try {
-        const response = await authorizedFetch('/api/revise', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: item.name })
-        });
-        if (!response.ok) {
-          const result = await response.json();
-          showDashboardError(result.error || 'Nilai gagal dikembalikan untuk revisi.');
           return;
         }
         await loadDashboard();
@@ -1111,6 +1292,7 @@ bindCategoryFilters();
 bindTeamDetails();
 bindLoginModal();
 bindScoreForm();
+bindScoreEditModal();
 bindScanActions();
 bindTeamQrCodes();
 bindResetScores();

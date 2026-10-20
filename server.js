@@ -8,6 +8,7 @@ const {
   getDashboardData,
   recordTeamCheckpoint,
   recordTeamScore,
+  updatePendingTeamScore,
   resetScores,
   saveDashboardData,
   updateTeamDetails
@@ -305,15 +306,8 @@ app.post('/api/score', requireRole('pos'), asyncRoute(async (req, res) => {
   if (posNumber !== req.user.stationPos) {
     return res.status(403).json({ error: `Akun Anda hanya dapat mengisi nilai Pos ${req.user.stationPos}.` });
   }
-  const criteriaCountByPosition = { 1: 4, 2: 3, 3: 4, 4: 3 };
-  if (
-    values.length !== criteriaCountByPosition[posNumber] ||
-    values.some((value) => !Number.isFinite(value) || value < 1 || value > 100)
-  ) {
-    return res.status(400).json({
-      error: `Nilai Pos ${posNumber} harus berisi ${criteriaCountByPosition[posNumber]} kriteria dengan skor 1 sampai 100.`
-    });
-  }
+  const validationError = validateScoreCriteria(posNumber, values);
+  if (validationError) return res.status(400).json({ error: validationError });
 
   const result = await recordTeamScore({
     teamName: team,
@@ -325,26 +319,107 @@ app.post('/api/score', requireRole('pos'), asyncRoute(async (req, res) => {
   res.json({ success: true, data: result.data });
 }));
 
+function validateScoreCriteria(pos, values) {
+  const criteriaCountByPosition = { 1: 4, 2: 3, 3: 4, 4: 3 };
+  if (
+    !criteriaCountByPosition[pos] ||
+    !Array.isArray(values) ||
+    values.length !== criteriaCountByPosition[pos] ||
+    values.some((value) => !Number.isInteger(value) || value < 1 || value > 100)
+  ) {
+    return `Nilai Pos ${pos} harus berisi ${criteriaCountByPosition[pos] || 0} kriteria berupa bilangan bulat 1 sampai 100.`;
+  }
+  return null;
+}
+
+app.patch('/api/score', requireRole('pos'), asyncRoute(async (req, res) => {
+  const { team, pos, values } = req.body || {};
+  const posNumber = Number(pos);
+  if (typeof team !== 'string' || !team.trim() ||
+      !Number.isInteger(posNumber) || posNumber < 1 || posNumber > 4) {
+    return res.status(400).json({ error: 'Regu atau pos tidak valid.' });
+  }
+  if (posNumber !== req.user.stationPos) {
+    return res.status(403).json({ error: `Akun Anda hanya dapat mengedit nilai Pos ${req.user.stationPos}.` });
+  }
+  const validationError = validateScoreCriteria(posNumber, values);
+  if (validationError) return res.status(400).json({ error: validationError });
+
+  const result = await updatePendingTeamScore({
+    teamName: team.trim(),
+    pos: posNumber,
+    values,
+    username: req.user.username
+  });
+  if (!result.success) return res.status(result.status).json({ error: result.error });
+  res.json({ success: true, data: result.data });
+}));
+
+app.patch('/api/curation-score', requireRole('center'), asyncRoute(async (req, res) => {
+  const { team, pos, values } = req.body || {};
+  const posNumber = Number(pos);
+  if (typeof team !== 'string' || !team.trim() ||
+      !Number.isInteger(posNumber) || posNumber < 1 || posNumber > 4) {
+    return res.status(400).json({ error: 'Regu atau pos tidak valid.' });
+  }
+  const validationError = validateScoreCriteria(posNumber, values);
+  if (validationError) return res.status(400).json({ error: validationError });
+
+  const result = await updatePendingTeamScore({
+    teamName: team.trim(),
+    pos: posNumber,
+    values,
+    username: req.user.username
+  });
+  if (!result.success) return res.status(result.status).json({ error: result.error });
+  res.json({ success: true, data: result.data });
+}));
+
 app.post('/api/approve', requireRole('center'), asyncRoute(async (req, res) => {
-  const { name } = req.body || {};
+  const { name, pos } = req.body || {};
+  if (typeof name !== 'string' || !name.trim() || !/^Pos [1-4]$/.test(pos)) {
+    return res.status(400).json({ error: 'Regu atau pos kurasi tidak valid.' });
+  }
   const data = await getDashboardData();
+  const remainingQueue = data.approvalQueue.filter((item) =>
+    !(item.name === name && item.pos === pos)
+  );
+  if (remainingQueue.length === data.approvalQueue.length) {
+    return res.status(404).json({ error: 'Nilai yang akan dikurasi tidak ditemukan.' });
+  }
+  const teamStillPending = remainingQueue.some((item) => item.name === name);
 
   data.scores = data.scores.map((item) =>
-    item.name === name ? { ...item, status: 'Approved' } : item
+    item.name === name ? { ...item, status: teamStillPending ? 'Menunggu Kurasi' : 'Approved' } : item
   );
 
   data.standings.Putra = data.standings.Putra.map((item) =>
-    item.name === name ? { ...item, status: 'Approved' } : item
+    item.name === name ? { ...item, status: teamStillPending ? 'Menunggu Kurasi' : 'Approved' } : item
   );
 
   data.standings.Putri = data.standings.Putri.map((item) =>
-    item.name === name ? { ...item, status: 'Approved' } : item
+    item.name === name ? { ...item, status: teamStillPending ? 'Menunggu Kurasi' : 'Approved' } : item
   );
 
-  data.approvalQueue = data.approvalQueue.filter((item) => item.name !== name);
+  data.approvalQueue = remainingQueue;
+  data.history = data.history.map((entry) =>
+    entry.team === name && entry.pos === pos
+      ? { ...entry, status: 'Approved', curatedBy: req.user.username }
+      : entry
+  );
+  const approvedTotal = data.history.reduce((total, entry) => {
+    if (entry.team !== name || String(entry.status).toLowerCase() !== 'approved') return total;
+    const value = Number(entry.value);
+    return Number.isFinite(value) ? total + value : total;
+  }, 0);
+  for (const category of ['Putra', 'Putri']) {
+    data.standings[category] = data.standings[category].map((item) =>
+      item.name === name ? { ...item, score: approvedTotal } : item
+    );
+  }
   await saveDashboardData(data);
 
-  res.json({ success: true, message: `${name} telah disetujui.` });
+  res.json({ success: true, message: `${name} · ${pos} telah disetujui.` });
 }));
 
 app.post('/api/revise', requireRole('center'), asyncRoute(async (req, res) => {

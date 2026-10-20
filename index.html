@@ -222,20 +222,7 @@
                   <p class="qr-description">Catatan waktu masuk dan keluar setiap pos, diperbarui otomatis.</p>
                 </div>
               </div>
-              <div class="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Regu</th>
-                      <th>Kategori</th>
-                      <th>Pos</th>
-                      <th>Checkpoint</th>
-                      <th>Waktu (WIB)</th>
-                    </tr>
-                  </thead>
-                  <tbody id="checkpoint-history-body"></tbody>
-                </table>
-              </div>
+              <div id="checkpoint-history-groups" class="checkpoint-history-groups"></div>
             </article>
           </section>
         </section>
@@ -348,6 +335,7 @@
                     <th>Nilai</th>
                     <th>Status</th>
                     <th>Waktu</th>
+                    <th>Aksi</th>
                   </tr>
                 </thead>
                 <tbody id="pos-history-body"></tbody>
@@ -495,6 +483,24 @@
           </div>
           <p id="teamDetailStatus" class="team-detail-status" role="status" aria-live="polite"></p>
           <button id="saveTeamDetailsBtn" class="primary-btn full" type="submit">Simpan Perubahan</button>
+        </form>
+      </section>
+    </div>
+
+    <div id="scoreEditModal" class="modal hidden" aria-hidden="true">
+      <div class="modal-backdrop" data-score-modal-close="true"></div>
+      <section class="modal-card score-edit-card" role="dialog" aria-modal="true" aria-labelledby="scoreEditTitle">
+        <div class="modal-header">
+          <div>
+            <p class="eyebrow soft">Edit rincian nilai</p>
+            <h3 id="scoreEditTitle">Nilai Regu</h3>
+          </div>
+          <button type="button" class="close-modal" aria-label="Tutup edit nilai" data-score-modal-close="true">×</button>
+        </div>
+        <form id="scoreEditForm" class="score-edit-form">
+          <div id="scoreEditCriteriaFields" class="score-edit-criteria"></div>
+          <p id="scoreEditStatus" class="team-detail-status" role="status" aria-live="polite"></p>
+          <button id="saveScoreEditBtn" class="primary-btn full" type="submit">Simpan Perubahan Nilai</button>
         </form>
       </section>
     </div>

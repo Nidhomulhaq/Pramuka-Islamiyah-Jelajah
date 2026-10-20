@@ -871,15 +871,60 @@ select {
   gap: 12px;
 }
 
+.approval-pos-group {
+  display: grid;
+  gap: 10px;
+}
+
+.approval-pos-list {
+  display: grid;
+  gap: 12px;
+}
+
 .approval-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
+  display: grid;
+  gap: 12px;
   background: var(--card);
   border: 1px solid var(--line);
   border-radius: 16px;
   padding: 14px 16px;
+}
+
+.curation-score-form,
+.score-edit-form {
+  display: grid;
+  gap: 14px;
+}
+
+.curation-criteria-grid,
+.score-edit-criteria {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.curation-criteria-grid label,
+.score-edit-criteria label {
+  min-width: 0;
+  font-size: 0.78rem;
+}
+
+.curation-criteria-grid input,
+.score-edit-criteria input {
+  min-width: 0;
+}
+
+.history-edit-btn {
+  padding: 8px 10px;
+  white-space: nowrap;
+}
+
+.legacy-score-note,
+.empty-approval-queue {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.5;
 }
 
 .approval-meta strong {
@@ -948,6 +993,12 @@ select {
 
 .team-detail-card {
   width: min(92vw, 540px);
+  max-height: min(90vh, 760px);
+  overflow-y: auto;
+}
+
+.score-edit-card {
+  width: min(92vw, 560px);
   max-height: min(90vh, 760px);
   overflow-y: auto;
 }
@@ -1035,6 +1086,47 @@ select {
   margin: 0;
   color: var(--red);
   font-size: 0.84rem;
+}
+
+.checkpoint-history-groups {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.checkpoint-history-group {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: linear-gradient(180deg, #fffdf9, #f8eee0);
+}
+
+.checkpoint-history-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.checkpoint-history-heading h4 {
+  margin: 0;
+  color: var(--brown-deep);
+}
+
+.checkpoint-history-heading span {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.checkpoint-history-group th,
+.checkpoint-history-group td {
+  padding: 10px 8px;
+}
+
+.checkpoint-history-group table {
+  min-width: 500px;
 }
 
 .modal-header {
@@ -1204,15 +1296,17 @@ select {
   }
 
   .approval-item {
-    align-items: flex-start;
-    flex-direction: column;
     padding: 12px;
   }
 
-  .approval-meta,
-  .approval-actions {
+  .approval-meta {
     min-width: 0;
     max-width: 100%;
+  }
+
+  .curation-criteria-grid,
+  .score-edit-criteria {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .reset-scores-panel,
@@ -1236,6 +1330,15 @@ select {
 
   .team-detail-card {
     padding: 16px;
+  }
+
+  .checkpoint-history-groups {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .checkpoint-history-group {
+    padding: 10px;
   }
 
   .member-add-controls {
