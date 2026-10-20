@@ -67,9 +67,10 @@
                 <small>Semua pos berjalan</small>
               </div>
               <div class="stat-card warn">
-                <span class="label">Menunggu Kurasi</span>
-                <strong>3</strong>
-                <small>Nilai dari pos belum disetujui</small>
+                <span class="label">Nilai Terkurasi</span>
+                <strong id="curatedScoreCount" aria-live="polite">0/0</strong>
+                <small id="curationStatusSummary">Memuat status kurasi...</small>
+                <small id="curationUpdatedAt" class="stat-updated-at"></small>
               </div>
             </div>
           </section>
@@ -113,6 +114,9 @@
             <button class="dashboard-panel-tab" id="scores-tab" type="button" role="tab" aria-selected="false" aria-controls="scores-panel" data-dashboard-panel="scores-panel">
               Rekap Nilai
             </button>
+            <button class="dashboard-panel-tab" id="checkpoint-history-tab" type="button" role="tab" aria-selected="false" aria-controls="checkpoint-history-panel" data-dashboard-panel="checkpoint-history-panel">
+              Riwayat Pos
+            </button>
           </nav>
 
           <section id="teams-panel" class="dashboard-panel active" role="tabpanel" aria-labelledby="teams-tab">
@@ -141,6 +145,7 @@
                     <h3>Putra</h3>
                   </div>
                 </div>
+                <div id="standings-podium-putra" class="podium-grid" aria-label="Podium klasemen Putra"></div>
                 <div class="table-wrap">
                   <table>
                     <thead>
@@ -163,6 +168,7 @@
                     <h3>Putri</h3>
                   </div>
                 </div>
+                <div id="standings-podium-putri" class="podium-grid" aria-label="Podium klasemen Putri"></div>
                 <div class="table-wrap">
                   <table>
                     <thead>
@@ -202,6 +208,32 @@
                     </tr>
                   </thead>
                   <tbody id="detail-scores-body"></tbody>
+                </table>
+              </div>
+            </article>
+          </section>
+
+          <section id="checkpoint-history-panel" class="dashboard-panel" role="tabpanel" aria-labelledby="checkpoint-history-tab" hidden>
+            <article class="panel panel-full">
+              <div class="section-head">
+                <div>
+                  <p class="eyebrow soft">Perjalanan regu</p>
+                  <h3>Riwayat Checkpoint Pos</h3>
+                  <p class="qr-description">Catatan waktu masuk dan keluar setiap pos, diperbarui otomatis.</p>
+                </div>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Regu</th>
+                      <th>Kategori</th>
+                      <th>Pos</th>
+                      <th>Checkpoint</th>
+                      <th>Waktu (WIB)</th>
+                    </tr>
+                  </thead>
+                  <tbody id="checkpoint-history-body"></tbody>
                 </table>
               </div>
             </article>
@@ -274,24 +306,24 @@
                 </label>
 
                 <div class="scale-grid">
-                  <label>
-                    Kriteria 1
-                    <input id="criteria1" type="number" value="90" min="0" max="100" />
+                  <label id="criteriaField1">
+                    <span id="criteriaLabel1">Kriteria 1</span>
+                    <input id="criteria1" type="number" value="90" min="0" max="100" required />
                   </label>
-                  <label>
-                    Kriteria 2
-                    <input id="criteria2" type="number" value="85" min="0" max="100" />
+                  <label id="criteriaField2">
+                    <span id="criteriaLabel2">Kriteria 2</span>
+                    <input id="criteria2" type="number" value="85" min="0" max="100" required />
                   </label>
                 </div>
 
                 <div class="scale-grid">
-                  <label>
-                    Kriteria 3
-                    <input id="criteria3" type="number" value="88" min="0" max="100" />
+                  <label id="criteriaField3">
+                    <span id="criteriaLabel3">Kriteria 3</span>
+                    <input id="criteria3" type="number" value="88" min="0" max="100" required />
                   </label>
-                  <label>
-                    Kriteria 4
-                    <input id="criteria4" type="number" value="92" min="0" max="100" />
+                  <label id="criteriaField4">
+                    <span id="criteriaLabel4">Kriteria 4</span>
+                    <input id="criteria4" type="number" value="92" min="0" max="100" required />
                   </label>
                 </div>
 

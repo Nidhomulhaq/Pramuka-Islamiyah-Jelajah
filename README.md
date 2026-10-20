@@ -5,14 +5,17 @@ Dashboard event tracking untuk regu Pramuka dengan tampilan publik, panitia pos,
 ## Fitur
 
 - Live tracking regu
-- Dasbor publik terpisah untuk kategori, klasemen, dan rekap nilai
+- Dasbor publik terpisah untuk daftar regu, klasemen, rekap nilai, dan riwayat checkpoint
 - Klasemen putra dan putri
+- Podium animasi untuk lima peringkat teratas di setiap kategori
 - Dasbor panitia pos
+- Kriteria penilaian berbeda sesuai pos yang ditugaskan
 - Dasbor pusat kurasi
 - Pemindaian QR regu dengan kamera pada dasbor panitia pos
 - QR regu yang hanya dapat ditampilkan dan dicetak oleh pusat kurasi
 - Reset seluruh nilai dan riwayat uji coba khusus untuk pusat kurasi
 - Checkpoint perjalanan regu berurutan dari check-in/check-out Pos 1 sampai finish
+- Status nilai kurasi dan waktu checkpoint disegarkan otomatis setiap 5 detik
 - Penyimpanan data persisten di MongoDB Atlas
 
 ## Local Development

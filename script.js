@@ -20,10 +20,17 @@ let currentRole = 'guest';
 let currentUser = null;
 let selectedTeamName = '';
 let editingTeamMembers = [];
+let dashboardLoadPromise = null;
 let qrScanner = null;
 let scannerRunning = false;
 let scanProcessing = false;
 const accessTokenKey = 'jelajahAccessToken';
+const scoringCriteriaByStation = {
+  1: ['Kesesuaian logistik', 'Yel-yel', 'Desain ID card', 'Kerapian'],
+  2: ['Hafalan', 'Kekompakan', 'Pengerjaan sandi'],
+  3: ['Gerakan', 'Kekompakan', 'Aba-aba', 'Pengerjaan sandi'],
+  4: ['Kebersihan', 'Kedisiplinan dalam perjalanan', 'Kesopanan']
+};
 
 function authorizedFetch(url, options = {}) {
   const headers = new Headers(options.headers || {});
@@ -61,6 +68,7 @@ function updateAccessState() {
     : 'Pos ditentukan dari akun panitia.';
   const scorePosition = document.getElementById('scorePosDisplay');
   if (scorePosition) scorePosition.textContent = assignedPosLabel;
+  renderScoreCriteria(currentUser?.stationPos);
   const checkpointPosition = document.getElementById('checkpointPosDisplay');
   if (checkpointPosition) checkpointPosition.textContent = assignedPosLabel;
   if (currentRole !== 'center') {
@@ -79,6 +87,22 @@ function updateAccessState() {
   if (addButton) addButton.hidden = currentRole !== 'center';
   if (saveButton) saveButton.hidden = currentRole !== 'center';
   renderTeamMembers();
+}
+
+function renderScoreCriteria(stationPos) {
+  const criteria = scoringCriteriaByStation[stationPos] || [];
+  for (let index = 1; index <= 4; index += 1) {
+    const field = document.getElementById(`criteriaField${index}`);
+    const label = document.getElementById(`criteriaLabel${index}`);
+    const input = document.getElementById(`criteria${index}`);
+    if (!field || !label || !input) continue;
+
+    const active = index <= criteria.length;
+    field.hidden = !active;
+    input.disabled = !active;
+    input.required = active;
+    if (active) label.textContent = criteria[index - 1];
+  }
 }
 
 function canAccessView(viewId) {
@@ -107,33 +131,71 @@ function getStatusTone(status = '') {
 }
 
 async function loadDashboard() {
-  const errorMessage = document.getElementById('dashboardError');
-  try {
-    const response = await fetch('/api/dashboard');
-    if (!response.ok) {
-      const result = await response.json();
-      throw new Error(result.error || 'Data dashboard gagal dimuat.');
-    }
-    const data = await response.json();
-    appState = data;
-    if (errorMessage) errorMessage.hidden = true;
-  } catch (error) {
-    appState = emptyDashboardData();
-    showDashboardError(error.message);
-  }
+  if (dashboardLoadPromise) return dashboardLoadPromise;
 
-  renderAll();
+  const errorMessage = document.getElementById('dashboardError');
+  dashboardLoadPromise = (async () => {
+    try {
+      const response = await fetch('/api/dashboard');
+      if (!response.ok) {
+        const result = await response.json();
+        throw new Error(result.error || 'Data dashboard gagal dimuat.');
+      }
+      const data = await response.json();
+      appState = data;
+      if (errorMessage) errorMessage.hidden = true;
+    } catch (error) {
+      appState = emptyDashboardData();
+      showDashboardError(error.message);
+    }
+
+    renderAll();
+  })();
+
+  try {
+    await dashboardLoadPromise;
+  } finally {
+    dashboardLoadPromise = null;
+  }
 }
 
 function renderAll() {
+  renderCurationStatus();
   renderLiveTracking();
   renderStandings();
   renderDetailScores();
   renderPosHistory();
+  renderCheckpointHistory();
   renderApprovalQueue();
   renderTeamCards();
   updateTeamSelects();
   updateAccessState();
+}
+
+function renderCurationStatus() {
+  const count = document.getElementById('curatedScoreCount');
+  const summary = document.getElementById('curationStatusSummary');
+  const updatedAt = document.getElementById('curationUpdatedAt');
+  if (!count || !summary || !updatedAt) return;
+
+  const scores = appState.scores || [];
+  const approvedCount = scores.filter((score) =>
+    String(score.status || '').toLowerCase() === 'approved'
+  ).length;
+  const pendingCount = scores.filter((score) =>
+    String(score.status || '').toLowerCase().includes('menunggu kurasi')
+  ).length;
+  const uncuratedCount = Math.max(appState.teams.length - approvedCount - pendingCount, 0);
+
+  count.textContent = `${approvedCount}/${appState.teams.length}`;
+  summary.textContent = `${pendingCount} menunggu · ${uncuratedCount} belum terkurasi`;
+  updatedAt.textContent = `Diperbarui ${new Date().toLocaleTimeString('id-ID', {
+    timeZone: 'Asia/Jakarta',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hourCycle: 'h23'
+  })} WIB`;
 }
 
 function renderTeamCards() {
@@ -355,12 +417,22 @@ function renderLiveTracking() {
 function renderStandings() {
   const putraBody = document.getElementById('standings-putra');
   const putriBody = document.getElementById('standings-putri');
+  const putraPodium = document.getElementById('standings-podium-putra');
+  const putriPodium = document.getElementById('standings-podium-putri');
 
-  if (!putraBody || !putriBody) return;
+  if (!putraBody || !putriBody || !putraPodium || !putriPodium) return;
 
-  putraBody.innerHTML = (appState.standings?.Putra || [])
+  const sortedPutra = (appState.standings?.Putra || [])
     .slice()
-    .sort((a, b) => b.score - a.score)
+    .sort((a, b) => Number(b.score) - Number(a.score));
+  const sortedPutri = (appState.standings?.Putri || [])
+    .slice()
+    .sort((a, b) => Number(b.score) - Number(a.score));
+
+  renderPodium(putraPodium, sortedPutra);
+  renderPodium(putriPodium, sortedPutri);
+
+  putraBody.innerHTML = sortedPutra
     .map((team, index) => `
       <tr>
         <td>#${index + 1}</td>
@@ -371,9 +443,7 @@ function renderStandings() {
     `)
     .join('');
 
-  putriBody.innerHTML = (appState.standings?.Putri || [])
-    .slice()
-    .sort((a, b) => b.score - a.score)
+  putriBody.innerHTML = sortedPutri
     .map((team, index) => `
       <tr>
         <td>#${index + 1}</td>
@@ -383,6 +453,29 @@ function renderStandings() {
       </tr>
     `)
     .join('');
+}
+
+function renderPodium(container, teams) {
+  const topFive = teams.slice(0, 5);
+  const signature = JSON.stringify(topFive.map((team) => [team.name, team.score]));
+  if (container.dataset.podiumSignature === signature) return;
+  container.dataset.podiumSignature = signature;
+
+  container.innerHTML = topFive.map((team, index) => {
+    const rank = index + 1;
+    return `
+      <article class="podium-entry podium-rank-${rank}" style="--podium-delay:${index * 90}ms">
+        <div class="podium-team">
+          <span class="podium-medal" aria-hidden="true">${rank <= 3 ? ['🥇', '🥈', '🥉'][index] : `#${rank}`}</span>
+          <strong>${escapeHtml(team.name)}</strong>
+          <span>${escapeHtml(team.score)} poin</span>
+        </div>
+        <div class="podium-step" aria-label="Peringkat ${rank}">
+          <span>${rank}</span>
+        </div>
+      </article>
+    `;
+  }).join('');
 }
 
 function renderDetailScores() {
@@ -415,6 +508,57 @@ function renderPosHistory() {
       <td>${entry.time}</td>
     </tr>
   `).join('');
+}
+
+function renderCheckpointHistory() {
+  const body = document.getElementById('checkpoint-history-body');
+  if (!body) return;
+
+  const checkpoints = appState.teams.flatMap((team) =>
+    (Array.isArray(team.journeyCheckpoints) ? team.journeyCheckpoints : [])
+      .map((checkpoint) => ({ ...checkpoint, teamName: team.name, category: team.category }))
+  ).sort((a, b) => {
+    const timeA = Date.parse(a.time);
+    const timeB = Date.parse(b.time);
+    if (!Number.isFinite(timeA)) return Number.isFinite(timeB) ? 1 : 0;
+    if (!Number.isFinite(timeB)) return -1;
+    return timeB - timeA;
+  });
+
+  if (!checkpoints.length) {
+    body.innerHTML = '<tr><td colspan="5">Belum ada catatan checkpoint.</td></tr>';
+    return;
+  }
+
+  body.innerHTML = checkpoints.map((checkpoint) => {
+    const time = Date.parse(checkpoint.time);
+    const formattedTime = Number.isNaN(time)
+      ? 'Waktu tidak tersedia'
+      : new Date(time).toLocaleString('id-ID', {
+          timeZone: 'Asia/Jakarta',
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hourCycle: 'h23'
+        });
+    const posNumber = Number(checkpoint.pos);
+    const checkpointLabel = checkpoint.action === 'Keluar' && posNumber === 4
+      ? 'Keluar · Finish'
+      : checkpoint.action;
+
+    return `
+      <tr>
+        <td><strong>${escapeHtml(checkpoint.teamName)}</strong></td>
+        <td>${escapeHtml(checkpoint.category)}</td>
+        <td>Pos ${escapeHtml(checkpoint.pos)}</td>
+        <td>${escapeHtml(checkpointLabel)}</td>
+        <td>${escapeHtml(formattedTime)} WIB</td>
+      </tr>
+    `;
+  }).join('');
 }
 
 function renderApprovalQueue() {
@@ -774,16 +918,18 @@ function bindScoreForm() {
 
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
+    const criteriaCount = scoringCriteriaByStation[currentUser?.stationPos]?.length || 0;
+    if (!criteriaCount) {
+      showDashboardError('Akun pos belum memiliki pos penugasan untuk penilaian.');
+      return;
+    }
 
     const payload = {
       team: document.getElementById('scoreTeam').value,
       pos: `Pos ${currentUser?.stationPos}`,
-      values: [
-        Number(document.getElementById('criteria1').value || 0),
-        Number(document.getElementById('criteria2').value || 0),
-        Number(document.getElementById('criteria3').value || 0),
-        Number(document.getElementById('criteria4').value || 0)
-      ]
+      values: Array.from({ length: criteriaCount }, (_, index) =>
+        Number(document.getElementById(`criteria${index + 1}`).value)
+      )
     };
 
     try {
@@ -918,9 +1064,13 @@ window.addEventListener('storage', (event) => {
   restoreSession();
 });
 
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') loadDashboard();
+});
+
 window.setInterval(() => {
   if (document.visibilityState === 'visible') loadDashboard();
-}, 10000);
+}, 5000);
 
 bindTabs();
 bindDashboardPanelTabs();

@@ -205,6 +205,7 @@ app.get('/api/session', requireRole('pos', 'center'), (req, res) => {
 
 app.get('/api/dashboard', asyncRoute(async (req, res) => {
   const data = await getDashboardData();
+  res.set('Cache-Control', 'no-store');
   res.json(data);
 }));
 
@@ -294,9 +295,18 @@ app.post('/api/score', requireRole('pos'), asyncRoute(async (req, res) => {
   if (posNumber !== req.user.stationPos) {
     return res.status(403).json({ error: `Akun Anda hanya dapat mengisi nilai Pos ${req.user.stationPos}.` });
   }
+  const criteriaCountByPosition = { 1: 4, 2: 3, 3: 4, 4: 3 };
+  if (
+    values.length !== criteriaCountByPosition[posNumber] ||
+    values.some((value) => !Number.isFinite(value) || value < 0 || value > 100)
+  ) {
+    return res.status(400).json({
+      error: `Nilai Pos ${posNumber} harus berisi ${criteriaCountByPosition[posNumber]} kriteria dengan skor 0 sampai 100.`
+    });
+  }
 
   const data = await getDashboardData();
-  const total = values.reduce((sum, value) => sum + Number(value || 0), 0);
+  const total = values.reduce((sum, value) => sum + value, 0);
   const posName = `Pos ${posNumber}`;
   const posKey = `pos${posName.replace(/\D/g, '')}`;
 
