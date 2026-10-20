@@ -7,6 +7,7 @@ const QRCode = require('qrcode');
 const {
   getDashboardData,
   recordTeamCheckpoint,
+  recordTeamScore,
   resetScores,
   saveDashboardData,
   updateTeamDetails
@@ -209,6 +210,15 @@ app.get('/api/dashboard', asyncRoute(async (req, res) => {
   res.json(data);
 }));
 
+app.get('/api/pos-history', requireRole('pos'), asyncRoute(async (req, res) => {
+  const data = await getDashboardData();
+  const posName = `Pos ${req.user.stationPos}`;
+  res.set('Cache-Control', 'private, no-store');
+  res.json({
+    history: data.history.filter((entry) => entry.pos === posName)
+  });
+}));
+
 app.patch('/api/teams/details', requireRole('center'), asyncRoute(async (req, res) => {
   const { currentName, name, members } = req.body || {};
   if (
@@ -298,43 +308,21 @@ app.post('/api/score', requireRole('pos'), asyncRoute(async (req, res) => {
   const criteriaCountByPosition = { 1: 4, 2: 3, 3: 4, 4: 3 };
   if (
     values.length !== criteriaCountByPosition[posNumber] ||
-    values.some((value) => !Number.isFinite(value) || value < 0 || value > 100)
+    values.some((value) => !Number.isFinite(value) || value < 1 || value > 100)
   ) {
     return res.status(400).json({
-      error: `Nilai Pos ${posNumber} harus berisi ${criteriaCountByPosition[posNumber]} kriteria dengan skor 0 sampai 100.`
+      error: `Nilai Pos ${posNumber} harus berisi ${criteriaCountByPosition[posNumber]} kriteria dengan skor 1 sampai 100.`
     });
   }
 
-  const data = await getDashboardData();
-  const total = values.reduce((sum, value) => sum + value, 0);
-  const posName = `Pos ${posNumber}`;
-  const posKey = `pos${posName.replace(/\D/g, '')}`;
-
-  const scoreEntry = data.scores.find((item) => item.name === team);
-  if (!scoreEntry) return res.status(404).json({ error: 'Regu tidak ditemukan.' });
-  scoreEntry[posKey] = String(total);
-  scoreEntry.total = String(
-    ['pos1', 'pos2', 'pos3', 'pos4'].reduce((sum, key) => sum + (Number(scoreEntry[key]) || 0), 0)
-  );
-  scoreEntry.status = 'Menunggu Kurasi';
-
-  data.history.unshift({
-    team,
-    pos: posName,
-    value: String(total),
-    status: 'Menunggu Kurasi',
-    time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  const result = await recordTeamScore({
+    teamName: team,
+    pos: posNumber,
+    values,
+    username: req.user.username
   });
-
-  data.approvalQueue.unshift({
-    name: team,
-    pos: posName,
-    total: String(total),
-    source: 'Panitia Pos Manual'
-  });
-
-  await saveDashboardData(data);
-  res.json({ success: true, data: { team, pos: posName, total } });
+  if (!result.success) return res.status(result.status).json({ error: result.error });
+  res.json({ success: true, data: result.data });
 }));
 
 app.post('/api/approve', requireRole('center'), asyncRoute(async (req, res) => {

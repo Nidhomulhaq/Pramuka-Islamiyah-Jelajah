@@ -10,6 +10,8 @@ Dashboard event tracking untuk regu Pramuka dengan tampilan publik, panitia pos,
 - Podium animasi untuk lima peringkat teratas di setiap kategori
 - Dasbor panitia pos
 - Kriteria penilaian berbeda sesuai pos yang ditugaskan
+- Nilai setiap kriteria dibatasi 1-100 dan tiap regu hanya dapat dinilai sekali oleh setiap pos
+- Riwayat penilaian pada akun pos hanya menampilkan catatan dari pos penugasannya melalui endpoint khusus
 - Dasbor pusat kurasi
 - Pemindaian QR regu dengan kamera pada dasbor panitia pos
 - QR regu yang hanya dapat ditampilkan dan dicetak oleh pusat kurasi

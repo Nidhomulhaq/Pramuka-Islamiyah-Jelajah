@@ -142,6 +142,15 @@ async function loadDashboard() {
         throw new Error(result.error || 'Data dashboard gagal dimuat.');
       }
       const data = await response.json();
+      if (currentRole === 'pos') {
+        const historyResponse = await authorizedFetch('/api/pos-history');
+        if (!historyResponse.ok) {
+          const result = await historyResponse.json();
+          throw new Error(result.error || 'Riwayat nilai pos gagal dimuat.');
+        }
+        const historyData = await historyResponse.json();
+        data.history = historyData.history;
+      }
       appState = data;
       if (errorMessage) errorMessage.hidden = true;
     } catch (error) {
@@ -169,6 +178,7 @@ function renderAll() {
   renderApprovalQueue();
   renderTeamCards();
   updateTeamSelects();
+  updateScoreFormAvailability();
   updateAccessState();
 }
 
@@ -508,6 +518,19 @@ function renderPosHistory() {
       <td>${entry.time}</td>
     </tr>
   `).join('');
+}
+
+function updateScoreFormAvailability() {
+  const teamSelect = document.getElementById('scoreTeam');
+  const submitButton = document.querySelector('#scoreForm button[type="submit"]');
+  if (!teamSelect || !submitButton) return;
+
+  const posName = currentUser?.stationPos ? `Pos ${currentUser.stationPos}` : '';
+  const alreadyScored = (appState.history || []).some((entry) =>
+    entry.team === teamSelect.value && entry.pos === posName
+  );
+  submitButton.disabled = alreadyScored;
+  submitButton.textContent = alreadyScored ? 'Nilai Sudah Dikirim' : 'Simpan Nilai';
 }
 
 function renderCheckpointHistory() {
@@ -916,11 +939,21 @@ function bindScoreForm() {
   const form = document.getElementById('scoreForm');
   if (!form) return;
 
+  document.getElementById('scoreTeam').addEventListener('change', updateScoreFormAvailability);
+
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
     const criteriaCount = scoringCriteriaByStation[currentUser?.stationPos]?.length || 0;
     if (!criteriaCount) {
       showDashboardError('Akun pos belum memiliki pos penugasan untuk penilaian.');
+      return;
+    }
+    if ((appState.history || []).some((entry) =>
+      entry.team === document.getElementById('scoreTeam').value &&
+      entry.pos === `Pos ${currentUser.stationPos}`
+    )) {
+      showDashboardError('Regu ini sudah menerima nilai dari pos Anda.');
+      updateScoreFormAvailability();
       return;
     }
 
