@@ -487,17 +487,38 @@ function renderDetailScores() {
   const body = document.getElementById('detail-scores-body');
   if (!body) return;
 
-  body.innerHTML = (appState.scores || []).map((team) => `
-    <tr>
-      <td>${escapeHtml(team.name)}</td>
-      <td>${team.pos1 || '-'}</td>
-      <td>${team.pos2 || '-'}</td>
-      <td>${team.pos3 || '-'}</td>
-      <td>${team.pos4 || '-'}</td>
-      <td>${team.total || '-'}</td>
-      <td><span class="status-badge ${getStatusTone(team.status)}">${team.status}</span></td>
-    </tr>
-  `).join('');
+  body.innerHTML = (appState.scores || []).map((team) => {
+    const positionCells = [1, 2, 3, 4].map((pos) => {
+      const total = team[`pos${pos}`] || '-';
+      const criteria = team.criteriaByPos?.[`pos${pos}`] ||
+        appState.history.find((entry) =>
+          entry.team === team.name && entry.pos === `Pos ${pos}`
+        )?.criteria;
+      const labels = scoringCriteriaByStation[pos];
+      const hasCriteria = Array.isArray(criteria) && criteria.length === labels.length;
+      const criteriaDetails = hasCriteria
+        ? `<dl class="score-criteria-list">${labels.map((label, index) => `
+            <div><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(criteria[index])}</dd></div>
+          `).join('')}</dl>`
+        : total !== '-'
+          ? '<small class="score-criteria-unavailable">Rincian kriteria tidak tersedia</small>'
+          : '';
+
+      return `<td>
+        <strong>${escapeHtml(total)}</strong>
+        ${criteriaDetails}
+      </td>`;
+    });
+
+    return `
+      <tr>
+        <td>${escapeHtml(team.name)}</td>
+        ${positionCells.join('')}
+        <td>${escapeHtml(team.total || '-')}</td>
+        <td><span class="status-badge ${getStatusTone(team.status)}">${escapeHtml(team.status)}</span></td>
+      </tr>
+    `;
+  }).join('');
 }
 
 function renderPosHistory() {

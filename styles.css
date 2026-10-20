@@ -646,6 +646,40 @@ tbody tr:last-child td {
   color: var(--brown-deep);
 }
 
+.score-criteria-list {
+  display: grid;
+  gap: 3px;
+  margin: 7px 0 0;
+  color: var(--muted);
+  font-size: 0.72rem;
+  line-height: 1.35;
+}
+
+.score-criteria-list > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.score-criteria-list dt {
+  min-width: 0;
+}
+
+.score-criteria-list dd {
+  margin: 0;
+  color: var(--brown-deep);
+  font-weight: 700;
+}
+
+.score-criteria-unavailable {
+  display: block;
+  max-width: 150px;
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 0.68rem;
+  line-height: 1.35;
+}
+
 .ranking-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
