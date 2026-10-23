@@ -521,6 +521,40 @@ function renderDetailScores() {
   }).join('');
 }
 
+function bindScoresExcelDownload() {
+  const button = document.getElementById('downloadScoresExcelBtn');
+  if (!button) return;
+
+  button.addEventListener('click', async () => {
+    button.disabled = true;
+    try {
+      const response = await fetch('/api/dashboard.xlsx');
+      if (!response.ok) {
+        let message = 'File Excel rekap nilai gagal diunduh.';
+        if (response.headers.get('content-type')?.includes('application/json')) {
+          const result = await response.json();
+          if (result.error) message = result.error;
+        }
+        throw new Error(message);
+      }
+
+      const file = await response.blob();
+      const url = URL.createObjectURL(file);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'rekap-nilai-jelajah.xlsx';
+      document.body.append(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (error) {
+      showDashboardError(error.message);
+    } finally {
+      button.disabled = false;
+    }
+  });
+}
+
 function renderPosHistory() {
   const body = document.getElementById('pos-history-body');
   if (!body) return;
@@ -1310,6 +1344,7 @@ window.setInterval(() => {
 bindTabs();
 bindDashboardPanelTabs();
 bindCategoryFilters();
+bindScoresExcelDownload();
 bindTeamDetails();
 bindLoginModal();
 bindScoreForm();

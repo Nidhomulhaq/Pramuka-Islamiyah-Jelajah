@@ -7,6 +7,7 @@ Dashboard event tracking untuk regu Pramuka dengan tampilan publik, panitia pos,
 - Live tracking regu
 - Dasbor publik terpisah untuk daftar regu, klasemen, rekap nilai, dan riwayat checkpoint per pos
 - Rekap nilai menampilkan total dan rincian skor setiap kriteria untuk masing-masing pos
+- Rekap nilai dapat diunduh sebagai file Excel (.xlsx)
 - Klasemen putra dan putri
 - Skor klasemen dihitung dari nilai pos yang telah disetujui dan diperbarui setelah persetujuan kurasi
 - Podium animasi untuk lima peringkat teratas di setiap kategori

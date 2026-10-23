@@ -4,6 +4,7 @@ const express = require('express');
 const path = require('path');
 const crypto = require('crypto');
 const QRCode = require('qrcode');
+const ExcelJS = require('exceljs');
 const {
   getDashboardData,
   recordTeamCheckpoint,
@@ -209,6 +210,67 @@ app.get('/api/dashboard', asyncRoute(async (req, res) => {
   const data = await getDashboardData();
   res.set('Cache-Control', 'no-store');
   res.json(data);
+}));
+
+app.get('/api/dashboard.xlsx', asyncRoute(async (req, res) => {
+  const data = await getDashboardData();
+  const workbook = new ExcelJS.Workbook();
+  workbook.creator = 'Jelajah Pramuka Islamiyah';
+  workbook.created = new Date();
+  const worksheet = workbook.addWorksheet('Rekap Nilai');
+  const criteriaByPosition = {
+    1: ['Kesesuaian logistik', 'Yel-yel', 'Desain ID card', 'Kerapian'],
+    2: ['Hafalan', 'Kekompakan', 'Pengerjaan sandi'],
+    3: ['Gerakan', 'Kekompakan', 'Aba-aba', 'Pengerjaan sandi'],
+    4: ['Kebersihan', 'Kedisiplinan dalam perjalanan', 'Kesopanan']
+  };
+  const headers = ['Regu', 'Kategori'];
+  for (const [pos, criteria] of Object.entries(criteriaByPosition)) {
+    headers.push(`Pos ${pos} Total`, ...criteria.map((label) => `Pos ${pos} - ${label}`));
+  }
+  headers.push('Total Nilai', 'Status');
+  worksheet.addRow(headers);
+
+  for (const score of data.scores || []) {
+    const team = (data.teams || []).find((entry) => entry.name === score.name);
+    const row = [score.name, team?.category || '-'];
+    for (const [pos, criteria] of Object.entries(criteriaByPosition)) {
+      const scoreTotal = score[`pos${pos}`] || '-';
+      const values = score.criteriaByPos?.[`pos${pos}`] ||
+        (data.history || []).find((entry) =>
+          entry.team === score.name && entry.pos === `Pos ${pos}`
+        )?.criteria;
+      row.push(scoreTotal);
+      row.push(...criteria.map((_, index) =>
+        Array.isArray(values) && values.length === criteria.length ? values[index] : '-'
+      ));
+    }
+    row.push(score.total || '-', score.status || '-');
+    worksheet.addRow(row);
+  }
+
+  worksheet.views = [{ state: 'frozen', ySplit: 1 }];
+  worksheet.autoFilter = {
+    from: { row: 1, column: 1 },
+    to: { row: worksheet.rowCount, column: headers.length }
+  };
+  worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+  worksheet.getRow(1).fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: 'FF5B3D28' }
+  };
+  worksheet.columns = headers.map((header, index) => ({
+    width: index === 0 ? 24 : index === 1 || header === 'Status' ? 16 : Math.max(14, Math.min(header.length + 2, 30))
+  }));
+
+  const buffer = await workbook.xlsx.writeBuffer();
+  res.set({
+    'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'Content-Disposition': 'attachment; filename="rekap-nilai-jelajah.xlsx"',
+    'Cache-Control': 'no-store'
+  });
+  res.send(Buffer.from(buffer));
 }));
 
 app.get('/api/pos-history', requireRole('pos'), asyncRoute(async (req, res) => {
